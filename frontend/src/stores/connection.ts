@@ -28,7 +28,7 @@ interface ConnectionItem {
     name?: string
     type: number
     db?: number
-    keys?: number
+    keys: number
     connected?: boolean
     opened?: boolean
     expanded?: boolean
@@ -182,6 +182,7 @@ const useConnectionStore = defineStore('connection', {
                     for (let j = 0; j < group.connections.length; j++) {
                         const item = group.connections[j]
                         this.connections.push({
+                            keys: 0,
                             key: item.name,
                             label: item.name,
                             name: item.name,
@@ -196,6 +197,7 @@ const useConnectionStore = defineStore('connection', {
                         const item = group.connections[j]
                         const value = group.groupName + '/' + item.name
                         children.push({
+                            keys: 0,
                             key: value,
                             label: item.name,
                             name: item.name,
@@ -205,6 +207,7 @@ const useConnectionStore = defineStore('connection', {
                         })
                     }
                     this.connections.push({
+                        keys: 0,
                         key: group.groupName,
                         label: group.groupName,
                         type: ConnectionType.Group,
@@ -454,7 +457,12 @@ const useConnectionStore = defineStore('connection', {
             if (!connNode) return
 
             const { children: dbs = [] } = connNode
-            const dbDetail = get(dbs, db, {})
+            const dbDetail = get(dbs, db,  {
+                key: '',
+                label: '',
+                type: ConnectionType.Server, // 假设你有一个表示未知类型的枚举值
+                keys: 0,
+            })
 
             if (dbDetail == null) {
                 return
@@ -564,7 +572,7 @@ const useConnectionStore = defineStore('connection', {
          * @param {any} value
          * @param {number} ttl
          */
-        async setKey(connName: string, db: number, key: string, keyType: number, value: any, ttl: number): Promise<{msg?: string, success: boolean}> {
+        async setKey(connName: string, db: number, key: string, keyType: string, value: any, ttl: number): Promise<{msg?: string, success: boolean}> {
             try {
                 const { data, success, msg } = await SetKeyValue(connName, db, key, keyType, value, ttl) as unknown as SetKeyValueResponse
                 if (success) {
@@ -904,7 +912,12 @@ const useConnectionStore = defineStore('connection', {
             if (!connNode) return
 
             const { children: dbs = [] } = connNode
-            const dbDetail = get(dbs, db, {})
+            const dbDetail = get(dbs, db,  {
+                key: '',
+                label: '',
+                type: ConnectionType.Server, // 假设你有一个表示未知类型的枚举值
+                keys: 0,
+            })
 
             if (dbDetail == null) {
                 return
