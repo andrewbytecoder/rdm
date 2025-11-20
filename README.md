@@ -52,3 +52,16 @@ wails generate module
 
 
 Go 运行时可通过导入 github.com/wailsapp/wails/v2/pkg/runtime 获取。 此包中的所有方法都将 context 作为第一个参数。 此 context 应该从 应用启动回调 或 前端 Dom 加载完成回调 回调方法中获取
+
+
+
+## 全局安装ts
+
+```bash
+npm install -g typescript
+```
+以上命令会在全局环境下安装 tsc 命令，安装完成之后，我们就可以在任何地方执行 tsc 命令了。
+
+```bash
+tsc hello.ts
+```
