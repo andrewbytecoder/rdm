@@ -24,7 +24,17 @@ import {
     NTabPane,
     NEmpty,
     NGradientText,
-    NIcon
+    NIcon,
+    NModal,
+    NSpace,
+    NMessageProvider,
+    NLoadingBarProvider,
+    NNotificationProvider,
+    NScrollbar,
+    NAlert,
+    NText,
+    NEllipsis,
+    NInputGroup,
 } from 'naive-ui'
 import { createI18n } from 'vue-i18n'
 import App from './App.vue'
@@ -55,6 +65,18 @@ app.component('NTabPane', NTabPane)
 app.component('NEmpty', NEmpty)
 app.component('NGradientText', NGradientText)
 app.component('NIcon', NIcon)
+app.component('NModal', NModal)
+app.component('NSpace', NSpace)
+app.component('NMessageProvider', NMessageProvider)
+app.component('NLoadingBarProvider', NLoadingBarProvider)
+app.component('NNotificationProvider', NNotificationProvider)
+app.component('NConfigProvider', NConfigProvider)
+app.component('NScrollbar', NScrollbar)
+app.component('NAlert', NAlert)
+app.component('NText', NText)
+app.component('NEllipsis', NEllipsis)
+app.component('NInputGroup', NInputGroup)
+
 
 app.use(
     createI18n({
