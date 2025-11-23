@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed} from "vue";
-import {RedisDataTypeEnum, types, validType} from "../consts/support_redis_type";
+import {RedisDataTypeEnum, types, validType} from "../../consts/support_redis_type";
 
 interface Props {
   type?: string

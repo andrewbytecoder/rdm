@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { NInput } from 'naive-ui'
-import type { PropType } from 'vue'
 
 interface Props {
   isEdit?: boolean

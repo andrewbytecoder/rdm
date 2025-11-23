@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import ContentPane from './components/ContentPane.vue'
-import NavigationPane from './components/NavigationPane.vue'
+import ContentPane from './components/content/ContentPane.vue'
+import ConnectionPane from './components/sidebar/ConnectionPane.vue'
 import { computed, nextTick, onMounted, provide, reactive, ref, Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { GetPreferences } from '../wailsjs/go/storage/PreferencesStorage.js'
@@ -82,7 +82,7 @@ const dragging = computed<boolean>(() => {
   <div id="app-container" :class="{ dragging: dragging }" class="flex-box-h">
     <nav-menu />
     <div id="app-side" :style="{ width: asideWidthVal }" class="flex-box-h flex-item">
-      <navigation-pane class="flex-item-expand"></navigation-pane>
+      <connection-pane class="flex-item-expand"></connection-pane>
       <div
           :class="{
           'resize-divider-hover': data.hoverResize,

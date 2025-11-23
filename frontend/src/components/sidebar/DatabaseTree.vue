@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { h, nextTick, onMounted, reactive, ref, type VNodeChild } from 'vue'
-import { ConnectionType } from '../consts/connection_type.js'
-import useConnection from '../stores/connection.js'
+import { ConnectionType } from '../../consts/connection_type'
+import useConnection from '../../stores/database'
 import {
   NIcon,
   NTree,
@@ -11,23 +11,24 @@ import {
   type TreeOption,
   type DropdownOption
 } from 'naive-ui'
-import ToggleFolder from './icons/ToggleFolder.vue'
-import Key from './icons/Key.vue'
-import ToggleDb from './icons/ToggleDb.vue'
-import ToggleServer from './icons/ToggleServer.vue'
+import ToggleFolder from '../icons/ToggleFolder.vue'
+import Key from '../icons/Key.vue'
+import ToggleDb from '../icons/ToggleDb.vue'
+import ToggleServer from '../icons/ToggleServer.vue'
 import { indexOf, remove, startsWith } from 'lodash-es'
 import { useI18n } from 'vue-i18n'
-import Refresh from './icons/Refresh.vue'
-import Config from './icons/Config.vue'
-import CopyLink from './icons/CopyLink.vue'
-import Unlink from './icons/Unlink.vue'
-import Add from './icons/Add.vue'
-import Layer from './icons/Layer.vue'
-import Delete from './icons/Delete.vue'
-import Connect from './icons/Connect.vue'
-import useDialogStore from '../stores/dialog.js'
-import { ClipboardSetText } from '../../wailsjs/runtime'
-import useTabStore from '../stores/tab.js'
+import Refresh from '../icons/Refresh.vue'
+import Config from '../icons/Config.vue'
+import CopyLink from '../icons/CopyLink.vue'
+import Unlink from '../icons/Unlink.vue'
+import Add from '../icons/Add.vue'
+import Layer from '../icons/Layer.vue'
+import Delete from '../icons/Delete.vue'
+import Connect from '../icons/Connect.vue'
+import useDialogStore from '../../stores/dialog'
+import { ClipboardSetText } from '../../../wailsjs/runtime'
+import useTabStore from '../../stores/tab'
+import useConnectionStore from '../../stores/connections.js'
 
 // 类型定义 - 修复接口扩展问题
 interface MenuOption {
@@ -63,14 +64,18 @@ const i18n = useI18n()
 const loading = ref<boolean>(false)
 const loadingConnections = ref<boolean>(false)
 const expandedKeys = ref<string[]>([])
-const connectionStore = useConnection()
+const connectionStore = useConnectionStore()
 const tabStore = useTabStore()
 const dialogStore = useDialogStore()
 
-const showContextMenu = ref<boolean>(false)
-const contextPos = reactive<ContextPosition>({ x: 0, y: 0 })
-const contextMenuOptions = ref<any[] | null>(null) // 使用 any 避免复杂类型
-const currentContextNode = ref<TreeNode | null>(null)
+const contextMenuParam = reactive({
+  show: false,
+  x: 0,
+  y: 0,
+  options: null,
+  currentNode: null,
+})
+
 
 // Store hooks
 const dialog = useDialog()
@@ -82,61 +87,7 @@ const renderIcon = (icon: any) => {
 
 // 菜单选项配置
 const menuOptions: Record<ConnectionType, (option: TreeNode) => any[]> = {
-  [ConnectionType.Group]: (option: TreeNode) => [
-    {
-      key: 'group_reload',
-      label: i18n.t('config_conn_group') as string,
-      icon: renderIcon(Config),
-    },
-    {
-      key: 'group_delete',
-      label: i18n.t('remove_conn_group') as string,
-      icon: renderIcon(Delete),
-    },
-  ],
-  [ConnectionType.Server]: (option: TreeNode) => {
-    if (option.connected) {
-      return [
-        {
-          key: 'server_reload',
-          label: i18n.t('reload') as string,
-          icon: renderIcon(Refresh),
-        },
-        {
-          key: 'server_disconnect',
-          label: i18n.t('disconnect') as string,
-          icon: renderIcon(Unlink),
-        },
-        {
-          key: 'server_dup',
-          label: i18n.t('dup_conn') as string,
-          icon: renderIcon(CopyLink),
-        },
-        {
-          key: 'server_config',
-          label: i18n.t('config_conn') as string,
-          icon: renderIcon(Config),
-        },
-        {
-          type: 'divider',
-          key: 'd1',
-        },
-        {
-          key: 'server_remove',
-          label: i18n.t('remove_conn') as string,
-          icon: renderIcon(Delete),
-        },
-      ]
-    } else {
-      return [
-        {
-          key: 'server_open',
-          label: i18n.t('open_connection') as string,
-          icon: renderIcon(Connect),
-        },
-      ]
-    }
-  },
+
   [ConnectionType.RedisDB]: (option: TreeNode) => {
     if (option.opened) {
       return [
@@ -214,7 +165,7 @@ const menuOptions: Record<ConnectionType, (option: TreeNode) => any[]> = {
 onMounted(async (): Promise<void> => {
   try {
     loadingConnections.value = true
-    await nextTick(() => connectionStore.initConnection())
+    // await nextTick(() => connectionStore.initConnection())
   } finally {
     loadingConnections.value = false
   }
@@ -243,22 +194,15 @@ const renderContextLabel = (option: any): VNodeChild => {
   return h('div', { class: 'context-menu-item' }, option.label)
 }
 
+
+const props = defineProps({
+  server: String,
+})
+
 // 修复渲染函数类型
 const renderPrefix = (info: any): VNodeChild => {
   const option = info.option as TreeNode
   switch (option.type) {
-    case ConnectionType.Group:
-      return h(
-          NIcon,
-          { size: 20 },
-          { default: () => h(ToggleFolder, { modelValue: option.expanded === true }) }
-      )
-    case ConnectionType.Server:
-      return h(
-          NIcon,
-          { size: 20 },
-          { default: () => h(ToggleServer, { modelValue: option.connected === true }) }
-      )
     case ConnectionType.RedisDB:
       return h(
           NIcon,

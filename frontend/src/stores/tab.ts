@@ -129,16 +129,16 @@ const useTabStore = defineStore('tab', {
             // Implementation remains the same as original
         },
 
-        removeTab(tabIndex: number): void {
+        removeTab(tabIndex: number): null | TabItem {
             const len = size(this.tabs)
             if (len === 1 && this.tabs[0].blank) {
-                return
+                return null
             }
 
             if (tabIndex < 0 || tabIndex >= len) {
-                return
+                return null
             }
-            this.tabList.splice(tabIndex, 1)
+            const removed = this.tabList.splice(tabIndex, 1)
 
             if (len === 1) {
                 this.newBlankTab()
@@ -148,6 +148,7 @@ const useTabStore = defineStore('tab', {
                     this.activatedIndex = 0
                 }
             }
+            return size(removed) > 0 ? removed[0] : null
         },
 
         removeTabByName(tabName: string): void {

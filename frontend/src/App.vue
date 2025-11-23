@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ContentPane from './components/ContentPane.vue'
+import ContentPane from './components/content/ContentPane.vue'
 import NewConnDialog from './components/dialogs/NewConnDialog.vue'
 import NewKeyDialog from './components/dialogs/NewKeyDialog.vue'
 import PreferencesDialog from './components/dialogs/PreferencesDialog.vue'

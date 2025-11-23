@@ -1,5 +1,5 @@
-import { get, isEmpty, last, remove, size, sortedIndexBy, split } from 'lodash'
 import { defineStore } from 'pinia'
+import { get, isEmpty, last, remove, size, sortedIndexBy, split } from 'lodash'
 import {
     AddHashField,
     AddListItem,
@@ -22,51 +22,59 @@ import {
 import { ConnectionType } from '../consts/connection_type.js'
 import useTabStore from './tab.js'
 
+const separator = ':'
+
+// 定义类型
 interface ConnectionItem {
     key: string
     label: string
-    name?: string
+    name: string
+    type: number
+    children?: ConnectionItem[]
+    isLeaf?: boolean
+}
+
+interface DatabaseItem {
+    key: string
+    label: string
+    name: string
     type: number
     db?: number
     keys: number
-    connected?: boolean
     opened?: boolean
     expanded?: boolean
-    children?: ConnectionItem[]
-    isLeaf?: boolean
+    children?: DatabaseItem[]
     redisKey?: string
+    isLeaf?: boolean
+}
+
+interface ConnectionGroup {
+    groupName: string
+    connections: Array<{name: string}>
 }
 
 interface ListConnectionResponse {
-    data: Array<{
-        groupName: string
-        connections: Array<{
-            name: string
-        }>
-    }>
+    data?: ConnectionGroup[]
 }
 
 interface OpenConnectionResponse {
-    data: {
-        db: Array<{
-            name: string
-            keys: number
-        }>
+    data?: {
+        db: Array<{name: string, keys: number}>
     }
     success: boolean
     msg: string
 }
 
 interface OpenDatabaseResponse {
-    data: {
-        keys: Record<string, any>
+    data?: {
+        keys: string[]
     }
     success: boolean
     msg: string
 }
 
 interface GetKeyValueResponse {
-    data: {
+    data?: {
         type: string
         ttl: number
         value: any
@@ -75,14 +83,8 @@ interface GetKeyValueResponse {
     msg: string
 }
 
-interface SetKeyValueResponse {
-    data: any
-    success: boolean
-    msg: string
-}
-
 interface SetHashValueResponse {
-    data: {
+    data?: {
         updated?: Record<string, any>
         removed?: string[]
     }
@@ -91,7 +93,7 @@ interface SetHashValueResponse {
 }
 
 interface AddHashFieldResponse {
-    data: {
+    data?: {
         updated?: Record<string, any>
     }
     success: boolean
@@ -99,7 +101,7 @@ interface AddHashFieldResponse {
 }
 
 interface AddListItemResponse {
-    data: {
+    data?: {
         left?: any[]
         right?: any[]
     }
@@ -108,7 +110,7 @@ interface AddListItemResponse {
 }
 
 interface SetListItemResponse {
-    data: {
+    data?: {
         updated?: Record<string, any>
         removed?: string[]
     }
@@ -116,28 +118,18 @@ interface SetListItemResponse {
     msg: string
 }
 
-interface SetSetItemResponse {
-    success: boolean
-    msg: string
-}
-
-interface UpdateSetItemResponse {
-    success: boolean
-    msg: string
-}
-
-interface AddZSetValueResponse {
-    success: boolean
-    msg: string
-}
-
 interface UpdateZSetValueResponse {
-    data: {
+    data?: {
         updated?: Record<string, any>
-        removed?: any[]
+        removed?: string[]
     }
     success: boolean
     msg: string
+}
+
+interface ConnectionState {
+    connections: ConnectionItem[]
+    databases: Record<string, DatabaseItem[]>
 }
 
 interface SelectParams {
@@ -148,150 +140,86 @@ interface SelectParams {
     redisKey: string
 }
 
-interface UpsertTabParams {
-    server: string
-    db: number
-    type: string
-    ttl: number
-    key: string
-    value: any
-}
-
-const separator = ':'
-
-const useConnectionStore = defineStore('connection', {
-    state: () => ({
-        connections: [] as ConnectionItem[], // all connections list
+const useConnectionStore = defineStore('connections', {
+    state: (): ConnectionState => ({
+        connections: [], // all connections
+        databases: {}, // all databases in opened connections group by name
     }),
-
-    getters: {},
-
+    getters: {
+        anyConnectionOpened(): boolean {
+            return !isEmpty(this.databases)
+        },
+    },
     actions: {
         /**
          * Load all store connections struct from local profile
+         * @returns {Promise<void>}
          */
-        async initConnection(): Promise<void> {
+        async initConnections(): Promise<void> {
             if (!isEmpty(this.connections)) {
                 return
             }
-            const { data = [{ groupName: '', connections: [] }] } = await ListConnection() as unknown as ListConnectionResponse
+            const conns: ConnectionItem[] = []
+            const { data = [{ groupName: '', connections: [] }] } = await ListConnection() as ListConnectionResponse
             for (let i = 0; i < data.length; i++) {
                 const group = data[i]
                 // Top level group
                 if (isEmpty(group.groupName)) {
-                    for (let j = 0; j < group.connections.length; j++) {
+                    const len = size(group.connections)
+                    for (let j = 0; j < len; j++) {
                         const item = group.connections[j]
-                        this.connections.push({
-                            keys: 0,
+                        conns.push({
                             key: item.name,
                             label: item.name,
                             name: item.name,
-                            type: ConnectionType.Server
+                            type: ConnectionType.Server,
                             // isLeaf: false,
                         })
                     }
                 } else {
                     // Custom group
                     const children: ConnectionItem[] = []
-                    for (let j = 0; j < group.connections.length; j++) {
+                    const len = size(group.connections)
+                    for (let j = 0; j < len; j++) {
                         const item = group.connections[j]
                         const value = group.groupName + '/' + item.name
                         children.push({
-                            keys: 0,
                             key: value,
                             label: item.name,
                             name: item.name,
                             type: ConnectionType.Server,
-                            children: j === group.connections.length - 1 ? undefined : []
+                            children: j === len - 1 ? undefined : [],
                             // isLeaf: false,
                         })
                     }
-                    this.connections.push({
-                        keys: 0,
+                    conns.push({
+                        name: group.groupName,
                         key: group.groupName,
                         label: group.groupName,
                         type: ConnectionType.Group,
-                        children,
+                        children: children,
                     })
                 }
             }
+            this.connections = conns
             console.debug(JSON.stringify(this.connections))
         },
 
         /**
-         * Open connection
-         * @param {string} connName
+         * get database server by name
+         * @param name
+         * @returns {ConnectionItem|null}
          */
-        async openConnection(connName: string): Promise<void> {
-            const { data, success, msg } = await OpenConnection(connName) as unknown as OpenConnectionResponse
-            if (!success) {
-                throw new Error(msg)
-            }
-            // append to db node to current connection
-            const connNode = this.getConnection(connName)
-            if (connNode == null) {
-                throw new Error('no such connection')
-            }
-            const { db } = data
-            if (isEmpty(db)) {
-                throw new Error('no db loaded')
-            }
-            const children: ConnectionItem[] = []
-            for (let i = 0; i < db.length; i++) {
-                children.push({
-                    key: `${connName}/${db[i].name}`,
-                    label: db[i].name,
-                    name: connName,
-                    keys: db[i].keys,
-                    db: i,
-                    type: ConnectionType.RedisDB,
-                    // isLeaf: false,
-                })
-            }
-            connNode.children = children
-            connNode.connected = true
-        },
-
-        /**
-         * Close connection
-         * @param {string} connName
-         */
-        async closeConnection(connName: string): Promise<boolean> {
-            const { success, msg } = await CloseConnection(connName)
-            if (!success) {
-                // throw new Error(msg)
-                return false
-            }
-
-            // successful close connection, remove all children
-            const connNode = this.getConnection(connName)
-            if (connNode == null) {
-                // throw new Error('no such connection')
-                return false
-            }
-            connNode.children = undefined
-            connNode.isLeaf = undefined
-            connNode.connected = false
-            connNode.expanded = false
-            return true
-        },
-
-        /**
-         * Get Connection by path name
-         * @param {string} connName
-         */
-        getConnection(connName: string): ConnectionItem | null {
-            const conn = this.connections
-            for (let i = 0; i < conn.length; i++) {
-                if (conn[i].type === ConnectionType.Server && conn[i].key === connName) {
-                    return conn[i]
-                } else if (conn[i].type === ConnectionType.Group) {
-                    const children = conn[i].children
-                    if (children) {
-                        for (let j = 0; j < children.length; j++) {
-                            if (children[j].type === ConnectionType.Server && children[j].key === connName) {
-                                return children[j]
-                            }
+        getConnection(name: string): ConnectionItem | null {
+            const conns = this.connections
+            for (let i = 0; i < conns.length; i++) {
+                if (conns[i].type === ConnectionType.Server && conns[i].key === name) {
+                    return conns[i]
+                } else if (conns[i].type === ConnectionType.Group) {
+                    const children = conns[i].children || []
+                    for (let j = 0; j < children.length; j++) {
+                        if (children[j].type === ConnectionType.Server && conns[i].key === name) {
+                            return children[j]
                         }
                     }
                 }
@@ -300,36 +228,96 @@ const useConnectionStore = defineStore('connection', {
         },
 
         /**
-         * Open database and load all keys
-         * @param connName
-         * @param db
+         * Check if connection is connected
+         * @param name
+         * @returns {boolean}
          */
-        async openDatabase(connName: string, db: number): Promise<void> {
-            const { data, success, msg } = await OpenDatabase(connName, db) as unknown as OpenDatabaseResponse
+        isConnected(name: string): boolean {
+            const dbs = get(this.databases, name, [])
+            return !isEmpty(dbs)
+        },
+
+        /**
+         * Open connection
+         * @param {string} name
+         * @returns {Promise<void>}
+         */
+        async openConnection(name: string): Promise<void> {
+            if (this.isConnected(name)) {
+                return
+            }
+
+            const { data, success, msg } = await OpenConnection(name) as OpenConnectionResponse
             if (!success) {
                 throw new Error(msg)
             }
-            const { keys = {} } = data
+            // append to db node to current connection
+            // const connNode = this.getConnection(name)
+            // if (connNode == null) {
+            //     throw new Error('no such connection')
+            // }
+            const { db } = data!
+            if (isEmpty(db)) {
+                throw new Error('no db loaded')
+            }
+            const dbs: DatabaseItem[] = []
+            for (let i = 0; i < db.length; i++) {
+                dbs.push({
+                    key: `${name}/${db[i].name}`,
+                    label: db[i].name,
+                    name: name,
+                    keys: db[i].keys,
+                    db: i,
+                    type: ConnectionType.RedisDB,
+                    isLeaf: false,
+                })
+            }
+            this.databases[name] = dbs
+        },
+
+        /**
+         * Close connection
+         * @param {string} name
+         * @returns {Promise<boolean>}
+         */
+        async closeConnection(name: string): Promise<boolean> {
+            const { success, msg } = await CloseConnection(name)
+            if (!success) {
+                // throw new Error(msg)
+                return false
+            }
+
+            delete this.databases[name]
+            return true
+        },
+
+        /**
+         * Open database and load all keys
+         * @param connName
+         * @param db
+         * @returns {Promise<void>}
+         */
+        async openDatabase(connName: string, db: number): Promise<void> {
+            const { data, success, msg } = await OpenDatabase(connName, db) as OpenDatabaseResponse
+            if (!success) {
+                throw new Error(msg)
+            }
+            const { keys = [] } = data!
             if (isEmpty(keys)) {
-                const connNode = this.getConnection(connName)
-                if (connNode) {
-                    const { children = [] } = connNode
-                    if (children[db]) {
-                        children[db].children = []
-                        children[db].opened = true
-                    }
-                }
+                const dbs = this.databases[connName]
+                dbs[db].children = []
+                dbs[db].opened = true
                 return
             }
 
             // insert child to children list by order
-            const sortedInsertChild = (childrenList: ConnectionItem[], item: ConnectionItem) => {
+            const sortedInsertChild = (childrenList: DatabaseItem[], item: DatabaseItem) => {
                 const insertIdx = sortedIndexBy(childrenList, item, 'key')
                 childrenList.splice(insertIdx, 0, item)
                 // childrenList.push(item)
             }
             // update all node item's children num
-            const updateChildrenNum = (node: ConnectionItem) => {
+            const updateChildrenNum = (node: DatabaseItem) => {
                 let count = 0
                 const totalChildren = size(node.children)
                 if (totalChildren > 0) {
@@ -344,14 +332,14 @@ const useConnectionStore = defineStore('connection', {
                 // node.children = sortBy(node.children, 'label')
             }
 
-            const keyStruct: ConnectionItem[] = []
-            const mark: Record<string, ConnectionItem> = {}
+            const keyStruct: DatabaseItem[] = []
+            const mark: Record<string, DatabaseItem> = {}
             for (const key in keys) {
                 const keyPart = split(key, separator)
                 // const prefixLen = size(keyPart) - 1
                 const len = size(keyPart)
                 let handlePath = ''
-                let ks = keyStruct
+                let ks: DatabaseItem[] = keyStruct
                 for (let i = 0; i < len; i++) {
                     handlePath += keyPart[i]
                     if (i !== len - 1) {
@@ -390,15 +378,10 @@ const useConnectionStore = defineStore('connection', {
             }
 
             // append db node to current connection's children
-            const connNode = this.getConnection(connName)
-            if (connNode) {
-                const { children = [] } = connNode
-                if (children[db]) {
-                    children[db].children = keyStruct
-                    children[db].opened = true
-                    updateChildrenNum(children[db])
-                }
-            }
+            const dbs = this.databases[connName]
+            dbs[db].children = keyStruct
+            dbs[db].opened = true
+            updateChildrenNum(dbs[db])
         },
 
         /**
@@ -409,7 +392,7 @@ const useConnectionStore = defineStore('connection', {
          * @param type
          * @param redisKey
          */
-        select({ key, name, db, type, redisKey }: SelectParams) {
+        select({ key, name, db, type, redisKey }: SelectParams): void {
             if (type === ConnectionType.RedisValue) {
                 console.log(`[click]key:${key} db: ${db} redis key: ${redisKey}`)
 
@@ -426,9 +409,9 @@ const useConnectionStore = defineStore('connection', {
          */
         async loadKeyValue(server: string, db: number, key: string): Promise<void> {
             try {
-                const { data, success, msg } = await GetKeyValue(server, db, key) as unknown as GetKeyValueResponse
+                const { data, success, msg } = await GetKeyValue(server, db, key) as GetKeyValueResponse
                 if (success) {
-                    const { type, ttl, value } = data
+                    const { type, ttl, value } = data!
                     const tab = useTabStore()
                     tab.upsertTab({
                         server,
@@ -437,7 +420,7 @@ const useConnectionStore = defineStore('connection', {
                         ttl,
                         key,
                         value,
-                    } as UpsertTabParams)
+                    })
                 } else {
                     console.warn('TODO: handle get key fail')
                 }
@@ -452,23 +435,15 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} key
          * @private
          */
-        _addKey(connName: string, db: number, key: string) {
-            const connNode = this.getConnection(connName)
-            if (!connNode) return
-
-            const { children: dbs = [] } = connNode
-            const dbDetail = get(dbs, db,  {
-                key: '',
-                label: '',
-                type: ConnectionType.Server, // 假设你有一个表示未知类型的枚举值
-                keys: 0,
-            })
+        _addKey(connName: string, db: number, key: string): void {
+            const dbs = this.databases[connName]
+            const dbDetail = get(dbs, db, {})
 
             if (dbDetail == null) {
                 return
             }
 
-            const descendantChain: ConnectionItem[] = [dbDetail]
+            const descendantChain: DatabaseItem[] = [dbDetail as DatabaseItem]
 
             const keyPart = split(key, separator)
             let redisKey = ''
@@ -477,10 +452,8 @@ const useConnectionStore = defineStore('connection', {
             for (let i = 0; i < keyLen; i++) {
                 redisKey += keyPart[i]
 
-                const node = last(descendantChain)
-                if (!node) continue
-
-                const nodeList = get(node, 'children', []) as ConnectionItem[]
+                const node = last(descendantChain)!
+                const nodeList = get(node, 'children', []) as DatabaseItem[]
                 const len = size(nodeList)
                 const isLastKeyPart = i === keyLen - 1
                 for (let j = 0; j < len + 1; j++) {
@@ -493,7 +466,7 @@ const useConnectionStore = defineStore('connection', {
                         // out of search range, add new item
                         if (isLastKeyPart) {
                             // key not exists, add new one
-                            const item: ConnectionItem = {
+                            const item: DatabaseItem = {
                                 key: currentKey,
                                 label: keyPart[i],
                                 name: connName,
@@ -510,7 +483,7 @@ const useConnectionStore = defineStore('connection', {
                             added = true
                         } else {
                             // layer not exists, add new one
-                            const item: ConnectionItem = {
+                            const item: DatabaseItem = {
                                 key: currentKey,
                                 label: keyPart[i],
                                 name: connName,
@@ -549,7 +522,7 @@ const useConnectionStore = defineStore('connection', {
             if (added) {
                 const desLen = size(descendantChain)
                 for (let i = 0; i < desLen; i++) {
-                    const children = get(descendantChain[i], 'children', []) as ConnectionItem[]
+                    const children = get(descendantChain[i], 'children', []) as DatabaseItem[]
                     let keys = 0
                     for (const child of children) {
                         if (child.type === ConnectionType.RedisKey) {
@@ -568,13 +541,14 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} connName
          * @param {number} db
          * @param {string} key
-         * @param {number} keyType
+         * @param {string} keyType
          * @param {any} value
          * @param {number} ttl
+         * @returns {Promise<{[msg]: string, success: boolean}>}
          */
         async setKey(connName: string, db: number, key: string, keyType: string, value: any, ttl: number): Promise<{msg?: string, success: boolean}> {
             try {
-                const { data, success, msg } = await SetKeyValue(connName, db, key, keyType, value, ttl) as unknown as SetKeyValueResponse
+                const { data, success, msg } = await SetKeyValue(connName, db, key, keyType, value, ttl)
                 if (success) {
                     // update tree view data
                     this._addKey(connName, db, key)
@@ -599,12 +573,13 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} field
          * @param {string} newField
          * @param {string} value
+         * @returns {Promise<{[msg]: string, success: boolean, [updated]: {}}>}
          */
-        async setHash(connName: string, db: number, key: string, field: string, newField: string, value: string): Promise<{msg?: string, success: boolean, updated?: Record<string, any>}> {
+        async setHash(connName: string, db: number, key: string, field: string, newField: string | null, value: string | null): Promise<{msg?: string, success: boolean, updated?: Record<string, any>}> {
             try {
-                const { data, success, msg } = await SetHashValue(connName, db, key, field, newField || '', value || '') as unknown as SetHashValueResponse
+                const { data, success, msg } = await SetHashValue(connName, db, key, field, newField || '', value || '') as SetHashValueResponse
                 if (success) {
-                    const { updated = {} } = data
+                    const { updated = {} } = data!
                     return { success, updated }
                 } else {
                     return { success, msg }
@@ -621,12 +596,13 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} key
          * @param {number }action 0:ignore duplicated fields 1:overwrite duplicated fields
          * @param {string[]} fieldItems field1, value1, filed2, value2...
+         * @returns {Promise<{[msg]: string, success: boolean, [updated]: {}}>}
          */
         async addHashField(connName: string, db: number, key: string, action: number, fieldItems: string[]): Promise<{msg?: string, success: boolean, updated?: Record<string, any>}> {
             try {
-                const { data, success, msg } = await AddHashField(connName, db, key, action, fieldItems) as unknown as AddHashFieldResponse
+                const { data, success, msg } = await AddHashField(connName, db, key, action, fieldItems) as AddHashFieldResponse
                 if (success) {
-                    const { updated = {} } = data
+                    const { updated = {} } = data!
                     return { success, updated }
                 } else {
                     return { success: false, msg }
@@ -642,12 +618,13 @@ const useConnectionStore = defineStore('connection', {
          * @param {number} db
          * @param {string} key
          * @param {string} field
+         * @returns {Promise<{[msg]: {}, success: boolean, [removed]: string[]}>}
          */
         async removeHashField(connName: string, db: number, key: string, field: string): Promise<{msg?: string, success: boolean, removed?: string[]}> {
             try {
-                const { data, success, msg } = await SetHashValue(connName, db, key, field, '', '') as unknown as SetHashValueResponse
+                const { data, success, msg } = await SetHashValue(connName, db, key, field, '', '') as SetHashValueResponse
                 if (success) {
-                    const { removed = [] } = data
+                    const { removed = [] } = data!
                     return { success, removed }
                 } else {
                     return { success, msg }
@@ -664,8 +641,9 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} key
          * @param {int} action 0: push to head, 1: push to tail
          * @param {string[]}values
+         * @returns {Promise<*|{msg, success: boolean}>}
          */
-        async addListItem(connName: string, db: number, key: string, action: number, values: string[]): Promise<any> {
+        async addListItem(connName: string, db: number, key: string, action: number, values: string[]): Promise<{msg?: string, success: boolean}> {
             try {
                 return AddListItem(connName, db, key, action, values)
             } catch (e: any) {
@@ -679,12 +657,13 @@ const useConnectionStore = defineStore('connection', {
          * @param db
          * @param key
          * @param values
+         * @returns {Promise<[msg]: string, success: boolean, [item]: []>}
          */
         async prependListItem(connName: string, db: number, key: string, values: string[]): Promise<{msg?: string, success: boolean, item?: any[]}> {
             try {
-                const { data, success, msg } = await AddListItem(connName, db, key, 0, values) as unknown as AddListItemResponse
+                const { data, success, msg } = await AddListItem(connName, db, key, 0, values) as AddListItemResponse
                 if (success) {
-                    const { left = [] } = data
+                    const { left = [] } = data!
                     return { success, item: left }
                 } else {
                     return { success: false, msg }
@@ -700,12 +679,13 @@ const useConnectionStore = defineStore('connection', {
          * @param db
          * @param key
          * @param values
+         * @returns {Promise<[msg]: string, success: boolean, [item]: any[]>}
          */
         async appendListItem(connName: string, db: number, key: string, values: string[]): Promise<{msg?: string, success: boolean, item?: any[]}> {
             try {
-                const { data, success, msg } = await AddListItem(connName, db, key, 1, values) as unknown as AddListItemResponse
+                const { data, success, msg } = await AddListItem(connName, db, key, 1, values) as AddListItemResponse
                 if (success) {
-                    const { right = [] } = data
+                    const { right = [] } = data!
                     return { success, item: right }
                 } else {
                     return { success: false, msg }
@@ -722,12 +702,13 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} key
          * @param {number} index
          * @param {string} value
+         * @returns {Promise<{[msg]: string, success: boolean, [updated]: {}}>}
          */
         async updateListItem(connName: string, db: number, key: string, index: number, value: string): Promise<{msg?: string, success: boolean, updated?: Record<string, any>}> {
             try {
-                const { data, success, msg } = await SetListItem(connName, db, key, index, value) as unknown as SetListItemResponse
+                const { data, success, msg } = await SetListItem(connName, db, key, index, value) as SetListItemResponse
                 if (success) {
-                    const { updated = {} } = data
+                    const { updated = {} } = data!
                     return { success, updated }
                 } else {
                     return { success, msg }
@@ -743,12 +724,13 @@ const useConnectionStore = defineStore('connection', {
          * @param {number} db
          * @param {string} key
          * @param {number} index
+         * @returns {Promise<{[msg]: string, success: boolean, [removed]: string[]}>}
          */
         async removeListItem(connName: string, db: number, key: string, index: number): Promise<{msg?: string, success: boolean, removed?: string[]}> {
             try {
-                const { data, success, msg } = await SetListItem(connName, db, key, index, '') as unknown as SetListItemResponse
+                const { data, success, msg } = await SetListItem(connName, db, key, index, '') as SetListItemResponse
                 if (success) {
-                    const { removed = [] } = data
+                    const { removed = [] } = data!
                     return { success, removed }
                 } else {
                     return { success, msg }
@@ -764,10 +746,11 @@ const useConnectionStore = defineStore('connection', {
          * @param {number} db
          * @param {string} key
          * @param {string} value
+         * @returns {Promise<{[msg]: string, success: boolean}>}
          */
         async addSetItem(connName: string, db: number, key: string, value: string): Promise<{msg?: string, success: boolean}> {
             try {
-                const { success, msg } = await SetSetItem(connName, db, key, false, [value]) as unknown as SetSetItemResponse
+                const { success, msg } = await SetSetItem(connName, db, key, false, [value])
                 if (success) {
                     return { success }
                 } else {
@@ -785,10 +768,11 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} key
          * @param {string} value
          * @param {string} newValue
+         * @returns {Promise<{[msg]: string, success: boolean}>}
          */
         async updateSetItem(connName: string, db: number, key: string, value: string, newValue: string): Promise<{msg?: string, success: boolean}> {
             try {
-                const { success, msg } = await UpdateSetItem(connName, db, key, value, newValue) as unknown as UpdateSetItemResponse
+                const { success, msg } = await UpdateSetItem(connName, db, key, value, newValue)
                 if (success) {
                     return { success: true }
                 } else {
@@ -805,10 +789,11 @@ const useConnectionStore = defineStore('connection', {
          * @param db
          * @param key
          * @param value
+         * @returns {Promise<{[msg]: string, success: boolean}>}
          */
         async removeSetItem(connName: string, db: number, key: string, value: string): Promise<{msg?: string, success: boolean}> {
             try {
-                const { success, msg } = await SetSetItem(connName, db, key, true, [value]) as unknown as SetSetItemResponse
+                const { success, msg } = await SetSetItem(connName, db, key, true, [value])
                 if (success) {
                     return { success }
                 } else {
@@ -826,10 +811,11 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} key
          * @param {number} action
          * @param {Object.<string, number>} vs value: score
+         * @returns {Promise<{[msg]: string, success: boolean}>}
          */
         async addZSetItem(connName: string, db: number, key: string, action: number, vs: Record<string, number>): Promise<{msg?: string, success: boolean}> {
             try {
-                const { success, msg } = await AddZSetValue(connName, db, key, action, vs) as unknown as AddZSetValueResponse
+                const { success, msg } = await AddZSetValue(connName, db, key, action, vs)
                 if (success) {
                     return { success }
                 } else {
@@ -848,12 +834,13 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} value
          * @param {string} newValue
          * @param {number} score
+         * @returns {Promise<{[msg]: string, success: boolean, [updated]: {}, [removed]: []}>}
          */
-        async updateZSetItem(connName: string, db: number, key: string, value: string, newValue: string, score: number): Promise<{msg?: string, success: boolean, updated?: Record<string, any>, removed?: any[]}> {
+        async updateZSetItem(connName: string, db: number, key: string, value: string, newValue: string, score: number): Promise<{msg?: string, success: boolean, updated?: Record<string, any>, removed?: string[]}> {
             try {
-                const { data, success, msg } = await UpdateZSetValue(connName, db, key, value, newValue, score) as unknown as UpdateZSetValueResponse
+                const { data, success, msg } = await UpdateZSetValue(connName, db, key, value, newValue, score) as UpdateZSetValueResponse
                 if (success) {
-                    const { updated, removed } = data
+                    const { updated, removed } = data!
                     return { success, updated, removed }
                 } else {
                     return { success, msg }
@@ -869,12 +856,13 @@ const useConnectionStore = defineStore('connection', {
          * @param {number} db
          * @param key
          * @param {string} value
+         * @returns {Promise<{[msg]: string, success: boolean, [removed]: []}>}
          */
-        async removeZSetItem(connName: string, db: number, key: string, value: string): Promise<{msg?: string, success: boolean, removed?: any[]}> {
+        async removeZSetItem(connName: string, db: number, key: string, value: string): Promise<{msg?: string, success: boolean, removed?: string[]}> {
             try {
-                const { data, success, msg } = await UpdateZSetValue(connName, db, key, value, '', 0) as unknown as UpdateZSetValueResponse
+                const { data, success, msg } = await UpdateZSetValue(connName, db, key, value, '', 0) as UpdateZSetValueResponse
                 if (success) {
-                    const { removed } = data
+                    const { removed } = data!
                     return { success, removed }
                 } else {
                     return { success, msg }
@@ -890,6 +878,7 @@ const useConnectionStore = defineStore('connection', {
          * @param {number} db
          * @param {string} key
          * @param {number} ttl
+         * @returns {Promise<boolean>}
          */
         async setTTL(connName: string, db: number, key: string, ttl: number): Promise<boolean> {
             try {
@@ -907,23 +896,15 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} key
          * @private
          */
-        _removeKey(connName: string, db: number, key: string) {
-            const connNode = this.getConnection(connName)
-            if (!connNode) return
-
-            const { children: dbs = [] } = connNode
-            const dbDetail = get(dbs, db,  {
-                key: '',
-                label: '',
-                type: ConnectionType.Server, // 假设你有一个表示未知类型的枚举值
-                keys: 0,
-            })
+        _removeKey(connName: string, db: number, key: string): void {
+            const dbs = this.databases[connName]
+            const dbDetail = get(dbs, db, {})
 
             if (dbDetail == null) {
                 return
             }
 
-            const descendantChain: ConnectionItem[] = [dbDetail]
+            const descendantChain: DatabaseItem[] = [dbDetail as DatabaseItem]
             const keyPart = split(key, separator)
             let redisKey = ''
             const keyLen = size(keyPart)
@@ -932,10 +913,8 @@ const useConnectionStore = defineStore('connection', {
             for (let i = 0; i < keyLen && !forceBreak; i++) {
                 redisKey += keyPart[i]
 
-                const node = last(descendantChain)
-                if (!node) continue
-
-                const nodeList = get(node, 'children', []) as ConnectionItem[]
+                const node = last(descendantChain)!
+                const nodeList = get(node, 'children', []) as DatabaseItem[]
                 const len = size(nodeList)
                 const isLastKeyPart = i === keyLen - 1
                 for (let j = 0; j < len; j++) {
@@ -951,9 +930,7 @@ const useConnectionStore = defineStore('connection', {
                         if (isLastKeyPart) {
                             // find target
                             nodeList.splice(j, 1)
-                            if (node.keys !== undefined) {
-                                node.keys -= 1
-                            }
+                            node.keys -= 1
                             deleted = true
                             forceBreak = true
                         } else {
@@ -975,16 +952,14 @@ const useConnectionStore = defineStore('connection', {
             if (deleted) {
                 const desLen = size(descendantChain)
                 for (let i = desLen - 1; i > 0; i--) {
-                    const children = get(descendantChain[i], 'children', []) as ConnectionItem[]
+                    const children = get(descendantChain[i], 'children', []) as DatabaseItem[]
                     const parent = descendantChain[i - 1]
                     if (isEmpty(children)) {
-                        const parentChildren = get(parent, 'children', []) as ConnectionItem[]
+                        const parentChildren = get(parent, 'children', []) as DatabaseItem[]
                         const k = get(descendantChain[i], 'key')
                         remove(parentChildren, (item) => item.key === k)
                     }
-                    if (parent.keys !== undefined) {
-                        parent.keys -= 1
-                    }
+                    parent.keys -= 1
                 }
             }
         },
@@ -994,6 +969,7 @@ const useConnectionStore = defineStore('connection', {
          * @param {string} connName
          * @param {number} db
          * @param {string} key
+         * @returns {Promise<boolean>}
          */
         async removeKey(connName: string, db: number, key: string): Promise<boolean> {
             try {
@@ -1018,6 +994,7 @@ const useConnectionStore = defineStore('connection', {
          * @param {number} db
          * @param {string} key
          * @param {string} newKey
+         * @returns {Promise<{[msg]: string, success: boolean}>}
          */
         async renameKey(connName: string, db: number, key: string, newKey: string): Promise<{msg?: string, success: boolean}> {
             const { success = false, msg } = await RenameKey(connName, db, key, newKey)

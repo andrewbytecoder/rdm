@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import useConnectionStore from '../stores/connection.js'
-import { throttle } from 'lodash'
-import { ConnectionType } from '../consts/connection_type.js'
-import Close from './icons/Close.vue'
+import { ref } from 'vue'
+import useConnectionStore from '../../stores/database'
+import { ConnectionType } from '../../consts/connection_type'
+import Close from '../icons/Close.vue'
 import type { PropType } from 'vue'
 
 interface TabItem {
@@ -20,11 +19,7 @@ interface CurrentSelect {
   key?: string
 }
 
-const emit = defineEmits<{
-  (e: 'switchTab', idx: number, key: string): void
-  (e: 'closeTab', idx: number, key: string): void
-  (e: 'update:modelValue', value: TabItem[] | number, key?: string): void
-}>()
+const emit = defineEmits(['switchTab', 'closeTab', 'update:modelValue'])
 
 const props = defineProps({
   selectedIndex: {
@@ -51,7 +46,7 @@ const onCurrentSelectChange = ({ type, group = '', server = '', db = 0, key = ''
   }
 }
 
-// watch(() => connectionStore.currentSelect, throttle(onCurrentSelectChange, 1000))
+// watch(() => databaseStore.currentSelect, throttle(onCurrentSelectChange, 1000))
 
 const items = ref<TabItem[]>(props.modelValue as TabItem[])
 const selIndex = ref(props.selectedIndex)

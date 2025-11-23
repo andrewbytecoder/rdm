@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { compact } from 'lodash'
 import Add from '../icons/Add.vue'
 import Delete from '../icons/Delete.vue'
-import IconButton from '../IconButton.vue'
+import IconButton from '../common/IconButton.vue'
 import type { PropType } from 'vue'
 
 const props = defineProps({

@@ -4,25 +4,40 @@ import { NIcon, useThemeVars, MenuOption, DropdownOption } from 'naive-ui'
 import ToggleDb from './icons/ToggleDb.vue'
 import { useI18n } from 'vue-i18n'
 import ToggleServer from './icons/ToggleServer.vue'
-import IconButton from './IconButton.vue'
+import IconButton from './common/IconButton.vue'
 import Config from './icons/Config.vue'
 import useDialogStore from '../stores/dialog'
 import Github from './icons/Github.vue'
 import { BrowserOpenURL } from '../../wailsjs/runtime'
+import Log from './icons/Log.vue'
+import useConnectionStore from '../stores/connections.js'
+import Update from "./icons/Update.vue";
 
 // 类型定义
 type MenuItemKey = 'structure' | 'server' | 'preferences' | 'about' | 'update'
 
 const themeVars = useThemeVars()
 
-const iconSize = 26
+const props = defineProps({
+  value: {
+    type: String,
+    default: 'server'
+  },
+  width: {
+    type: Number,
+    default: 60
+  },
+})
+
+const emit = defineEmits(['update:value'])
+const iconSize = computed(() => Math.floor(props.width * 0.4))
 const selectedMenu: Ref<MenuItemKey> = ref('server')
 
 // 渲染图标函数
 const renderIcon = (icon: any) => {
   return () => h(NIcon, null, { default: () => h(icon) })
 }
-
+const connectionStore = useConnectionStore()
 const i18n = useI18n()
 
 // 主菜单选项, 计算属性，必函数强的点是只有监听的变量改变时才会重新计算
@@ -32,13 +47,18 @@ const menuOptions = computed<MenuOption[]>(() => {
       label: i18n.t('structure'),
       key: 'structure',
       icon: renderIcon(ToggleDb),
-      show: true,
+      show: connectionStore.anyConnectionOpened,
     },
     {
       label: i18n.t('server'),
       key: 'server',
       icon: renderIcon(ToggleServer),
     },
+      {
+        label: i18n.t('log'),
+        key: 'log',
+        icon: renderIcon(Log),
+      },
   ]
 })
 
@@ -57,6 +77,7 @@ const preferencesOptions = computed<DropdownOption[]>(() => {
     {
       label: i18n.t('check_update'),
       key: 'update',
+      icon: renderIcon(Update),
     },
   ]
 })
@@ -86,12 +107,17 @@ const openGithub = () => {
 </script>
 
 <template>
-  <div id="app-nav-menu" class="flex-box-v">
+  <div id="app-nav-menu"
+       :style="{
+          width: props.width + 'px',
+       }"
+       class="flex-box-v">
     <n-menu
-        v-model:value="selectedMenu"
+        :collapsed-width="props.width"
+        :value="props.value"
         :collapsed="true"
         :collapsed-icon-size="iconSize"
-        :collapsed-width="60"
+        @update:value="(val:  string) => emit('update:value', val)"
         :options="menuOptions"
     ></n-menu>
     <div class="flex-item-expand"></div>
@@ -113,7 +139,7 @@ const openGithub = () => {
 
 <style lang="scss">
 #app-nav-menu {
-  width: 60px;
+  //width: 60px;
   height: 100vh;
   border-right: var(--border-color) solid 1px;
 
