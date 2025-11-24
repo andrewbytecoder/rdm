@@ -1,6 +1,29 @@
 # wails-demo
 wails-demo
 
+将名字更改为 WRDM wails redis desktop manager
+
+是一个非常实用的 Redis 可视化管理工具，尤其适合开发者日常连接、查看和调试 Redis 数据库。
+
+✅ 推荐理由：
+轻量 & 开源
+
+基于现代技术栈（如 Wails + Vue + TypeScript），代码透明，可自行编译或二次开发。
+跨平台支持
+
+支持 Windows、macOS 和 Linux（得益于 Wails 框架）。
+界面简洁直观
+
+提供树形结构展示 keys，支持字符串、哈希、列表、集合等所有 Redis 数据类型可视化。
+连接管理方便
+
+可保存多个连接配置，支持 SSH 隧道、TLS、密码认证等企业级功能。
+活跃维护（截至 2025 年）
+
+相比一些已停止更新的旧版 Redis GUI 工具（如早期的 Redis Desktop Manager 商业版），这个社区版本持续迭代。
+本地运行，数据安全
+
+所有操作都在本地执行，不上传数据到云端，适合对安全性要求高的场景。
 
 ## Install
 
