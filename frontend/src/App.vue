@@ -4,15 +4,14 @@ import NewKeyDialog from './components/dialogs/NewKeyDialog.vue'
 import PreferencesDialog from './components/dialogs/PreferencesDialog.vue'
 import RenameKeyDialog from './components/dialogs/RenameKeyDialog.vue'
 import SetTtlDialog from './components/dialogs/SetTtlDialog.vue'
+//  语言高亮配置
 import hljs from 'highlight.js/lib/core'
 import json from 'highlight.js/lib/languages/json'
-import { NMessageProvider, NNotificationProvider, NDialogProvider } from 'naive-ui'
+import { NMessageProvider, NConfigProvider,NNotificationProvider, NDialogProvider } from 'naive-ui'
 import plaintext from 'highlight.js/lib/languages/plaintext'
 import AddFieldsDialog from './components/dialogs/AddFieldsDialog.vue'
-import type { Ref } from 'vue'
 import AppContent from "./AppContent.vue";
 import 'highlight.js/styles/default.css'
-import HelloWorld from './components/HelloWorld.vue'
 
 interface Data {
   asideWith: number

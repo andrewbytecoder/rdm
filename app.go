@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"rdm/backend/services"
+
+	"github.com/andrewbytecoder/wrdm/backend/services"
 )
 
 // App struct

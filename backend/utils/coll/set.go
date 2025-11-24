@@ -2,10 +2,11 @@ package coll
 
 import (
 	"fmt"
-	json "github.com/bytedance/sonic"
-	. "rdm/backend/utils"
-	"rdm/backend/utils/rand"
 	"sort"
+
+	. "github.com/andrewbytecoder/wrdm/backend/utils"
+	"github.com/andrewbytecoder/wrdm/backend/utils/rand"
+	json "github.com/bytedance/sonic"
 )
 
 type Void struct{}

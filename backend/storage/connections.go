@@ -2,15 +2,16 @@ package storage
 
 import (
 	"errors"
-	"rdm/backend/types"
-	sliceutil "rdm/backend/utils/slice"
 	"sync"
+
+	"github.com/andrewbytecoder/wrdm/backend/types"
+	sliceutil "github.com/andrewbytecoder/wrdm/backend/utils/slice"
 
 	"gopkg.in/yaml.v3"
 )
 
 type ConnectionsStorage struct {
-	storage *localStorage
+	storage *LocalStorage
 	mutex   sync.Mutex
 }
 

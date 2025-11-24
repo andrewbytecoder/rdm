@@ -7,7 +7,6 @@ import { GetPreferences } from '../wailsjs/go/storage/PreferencesStorage.js'
 import { get } from 'lodash'
 import { useThemeVars } from 'naive-ui'
 import NavMenu from './components/NavMenu.vue'
-// import type { GlobalThemeVars } from 'naive-ui'
 
 // 定义响应式数据类型
 interface Data {

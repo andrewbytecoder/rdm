@@ -36,10 +36,12 @@ body {
 //text-align: center;
 }
 
+// 水平弹性布局
 .flex-box {
     display: flex;
 }
 
+// 垂直弹性布局
 .flex-box-v {
     @extend .flex-box;
     flex-direction: column;
@@ -54,6 +56,8 @@ body {
     flex: 0 0 auto;
 }
 
+//“左侧内容”和“右侧按钮”保持自身宽度
+//中间的 div 撑满两者之间的所有空白区域
 .flex-item-expand {
     flex-grow: 1;
 }

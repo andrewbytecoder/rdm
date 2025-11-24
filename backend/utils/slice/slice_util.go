@@ -1,11 +1,12 @@
 package sliceutil
 
 import (
-	. "rdm/backend/utils"
-	"rdm/backend/utils/rand"
 	"sort"
 	"strconv"
 	"strings"
+
+	. "github.com/andrewbytecoder/wrdm/backend/utils"
+	"github.com/andrewbytecoder/wrdm/backend/utils/rand"
 )
 
 // Get 获取指定索引的值, 如果不存在则返回默认值

@@ -5,15 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	. "rdm/backend/storage"
-	"rdm/backend/types"
-	maputil "rdm/backend/utils/map"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	redis2 "rdm/backend/utils/redis"
+	. "github.com/andrewbytecoder/wrdm/backend/storage"
+	"github.com/andrewbytecoder/wrdm/backend/types"
+	maputil "github.com/andrewbytecoder/wrdm/backend/utils/map"
+
+	redis2 "github.com/andrewbytecoder/wrdm/backend/utils/redis"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/wailsapp/wails/v2/pkg/runtime"

@@ -1,10 +1,11 @@
 package rand
 
 import (
-	"github.com/google/go-cmp/cmp"
 	"math/rand"
 	"sync"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 // WeightObject 权重单项

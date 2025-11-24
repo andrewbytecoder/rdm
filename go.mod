@@ -1,4 +1,4 @@
-module rdm
+module github.com/andrewbytecoder/wrdm
 
 go 1.23
 

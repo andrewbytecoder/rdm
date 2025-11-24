@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"embed"
-	"rdm/backend/services"
-	"rdm/backend/storage"
+
+	"github.com/andrewbytecoder/wrdm/backend/services"
+	"github.com/andrewbytecoder/wrdm/backend/storage"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"

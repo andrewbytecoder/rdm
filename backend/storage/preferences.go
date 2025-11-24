@@ -9,7 +9,7 @@ import (
 )
 
 type PreferencesStorage struct {
-	storage *localStorage
+	storage *LocalStorage
 	mutex   sync.Mutex
 }
 

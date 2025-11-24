@@ -31,7 +31,6 @@ const props = defineProps({
 
 const emit = defineEmits(['update:value'])
 const iconSize = computed(() => Math.floor(props.width * 0.4))
-const selectedMenu: Ref<MenuItemKey> = ref('server')
 
 // 渲染图标函数
 const renderIcon = (icon: any) => {
@@ -84,15 +83,17 @@ const preferencesOptions = computed<DropdownOption[]>(() => {
 
 // 渲染上下文标签, 函数组件，返回一个 VNode
 const renderContextLabel = (option: DropdownOption) => {
-  return h('div', { class: 'context-menu-item' }, option.label as string)
+  const label = typeof option.label === 'string' ? option.label : ''
+  return h('div', { class: 'context-menu-item' }, label)
 }
 
+// 获取dialog 需要的存储 数据
 const dialogStore = useDialogStore()
-
 // 处理偏好设置菜单选择, 函数，根据选择的菜单项执行相应的操作
 const onSelectPreferenceMenu = (key: MenuItemKey) => {
   switch (key) {
     case 'preferences':
+      //  将偏好设置菜单打开，这里只是打开渲染的标志
       dialogStore.openPreferencesDialog()
       break
     case 'update':
@@ -102,7 +103,8 @@ const onSelectPreferenceMenu = (key: MenuItemKey) => {
 
 // 打开 GitHub 页面
 const openGithub = () => {
-  BrowserOpenURL('https://github.com/andrewbytecoder/rdm')
+  //  wails 自带， 调用默认浏览器打开对应网址
+  BrowserOpenURL('https://github.com/andrewbytecoder/wrdm')
 }
 </script>
 
@@ -120,10 +122,13 @@ const openGithub = () => {
         @update:value="(val:  string) => emit('update:value', val)"
         :options="menuOptions"
     ></n-menu>
-    <div class="flex-item-expand"></div>
+<!--  用来撑满中间空白区域-->
+    <div class="flex-item-expand" ></div>
     <div class="nav-menu-item flex-box-v">
+<!--      下拉框，点开是一个拉开的框框-->
+<!--      会根据位置进行展开，如果在上面会向下展开，如果在下面会向上展开-->
       <n-dropdown
-          :animated="false"
+          :animated="true"
           :keyboard="false"
           :options="preferencesOptions"
           :render-label="renderContextLabel"
