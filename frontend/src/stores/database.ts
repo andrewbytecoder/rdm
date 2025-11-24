@@ -6,7 +6,7 @@ import {
     AddZSetValue,
     CloseConnection,
     GetKeyValue,
-    ListConnection,
+    // ListConnection,
     OpenConnection,
     OpenDatabase,
     RemoveKey,
@@ -21,21 +21,22 @@ import {
 } from '../../wailsjs/go/services/connectionService.js'
 import { ConnectionType } from '../consts/connection_type.js'
 import useTabStore from './tab.js'
+import useConnectionStore, {ConnectionItem} from './connections.js'
 
-interface ConnectionItem {
-    key: string
-    label: string
-    name?: string
-    type: number
-    db?: number
-    keys: number
-    connected?: boolean
-    opened?: boolean
-    expanded?: boolean
-    children?: ConnectionItem[]
-    isLeaf?: boolean
-    redisKey?: string
-}
+// interface ConnectionItem {
+//     key: string
+//     label: string
+//     name?: string
+//     type: number
+//     db?: number
+//     keys: number
+//     connected?: boolean
+//     opened?: boolean
+//     expanded?: boolean
+//     children?: ConnectionItem[]
+//     isLeaf?: boolean
+//     redisKey?: string
+// }
 
 interface ListConnectionResponse {
     data: Array<{
@@ -159,10 +160,10 @@ interface UpsertTabParams {
 
 const separator = ':'
 
-const useConnectionStore = defineStore('connection', {
+const useDatabaseStore = defineStore('database', {
     state: () => ({
         connections: [] as ConnectionItem[], // all connections list
-        databases: {},
+        databases: {}, // all database group by opened connections
     }),
 
     getters: {
@@ -173,57 +174,6 @@ const useConnectionStore = defineStore('connection', {
 
     actions: {
         /**
-         * Load all store connections struct from local profile
-         */
-        async initConnection(): Promise<void> {
-            if (!isEmpty(this.connections)) {
-                return
-            }
-            const { data = [{ groupName: '', connections: [] }] } = await ListConnection() as unknown as ListConnectionResponse
-            for (let i = 0; i < data.length; i++) {
-                const group = data[i]
-                // Top level group
-                if (isEmpty(group.groupName)) {
-                    for (let j = 0; j < group.connections.length; j++) {
-                        const item = group.connections[j]
-                        this.connections.push({
-                            keys: 0,
-                            key: item.name,
-                            label: item.name,
-                            name: item.name,
-                            type: ConnectionType.Server
-                            // isLeaf: false,
-                        })
-                    }
-                } else {
-                    // Custom group
-                    const children: ConnectionItem[] = []
-                    for (let j = 0; j < group.connections.length; j++) {
-                        const item = group.connections[j]
-                        const value = group.groupName + '/' + item.name
-                        children.push({
-                            keys: 0,
-                            key: value,
-                            label: item.name,
-                            name: item.name,
-                            type: ConnectionType.Server,
-                            children: j === group.connections.length - 1 ? undefined : []
-                            // isLeaf: false,
-                        })
-                    }
-                    this.connections.push({
-                        keys: 0,
-                        key: group.groupName,
-                        label: group.groupName,
-                        type: ConnectionType.Group,
-                        children,
-                    })
-                }
-            }
-            console.debug(JSON.stringify(this.connections))
-        },
-
-        /**
          * Open connection
          * @param {string} connName
          */
@@ -233,7 +183,8 @@ const useConnectionStore = defineStore('connection', {
                 throw new Error(msg)
             }
             // append to db node to current connection
-            const connNode = this.getConnection(connName)
+            const connStore = useConnectionStore()
+            const connNode = connStore.getConnection(connName)
             if (connNode == null) {
                 throw new Error('no such connection')
             }
@@ -340,7 +291,7 @@ const useConnectionStore = defineStore('connection', {
                 if (totalChildren > 0) {
                     for (const elem of node.children!) {
                         updateChildrenNum(elem)
-                        count += elem.keys
+                        count += elem.keys as number
                     }
                 } else {
                     count += 1
@@ -467,6 +418,7 @@ const useConnectionStore = defineStore('connection', {
                 label: '',
                 type: ConnectionType.Server, // 假设你有一个表示未知类型的枚举值
                 keys: 0,
+                name: connName,
             })
 
             if (dbDetail == null) {
@@ -922,6 +874,7 @@ const useConnectionStore = defineStore('connection', {
                 label: '',
                 type: ConnectionType.Server, // 假设你有一个表示未知类型的枚举值
                 keys: 0,
+                name: connName,
             })
 
             if (dbDetail == null) {
@@ -1038,4 +991,4 @@ const useConnectionStore = defineStore('connection', {
     },
 })
 
-export default useConnectionStore
+export default useDatabaseStore

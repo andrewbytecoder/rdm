@@ -25,13 +25,19 @@ import useTabStore from './tab.js'
 const separator = ':'
 
 // 定义类型
-interface ConnectionItem {
+export interface ConnectionItem {
     key: string
     label: string
     name: string
     type: number
+    db?: number
+    keys?: number
+    connected?: boolean
+    opened?: boolean
+    expanded?: boolean
     children?: ConnectionItem[]
     isLeaf?: boolean
+    redisKey?: string
 }
 
 interface DatabaseItem {
@@ -883,7 +889,7 @@ const useConnectionStore = defineStore('connections', {
         async setTTL(connName: string, db: number, key: string, ttl: number): Promise<boolean> {
             try {
                 const { success, msg } = await SetKeyTTL(connName, db, key, ttl)
-                return success === true
+                return success
             } catch (e: any) {
                 return false
             }

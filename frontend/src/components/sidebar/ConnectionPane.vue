@@ -8,6 +8,7 @@ import ConnectionTree from './ConnectionTree.vue'
 import IconButton from '../common/IconButton.vue'
 import Filter from '../icons/Filter.vue'
 
+
 const dialogStore = useDialogStore()
 
 const onSort = () => {
@@ -20,25 +21,27 @@ const onSort = () => {
     <ConnectionTree />
 
     <!-- bottom function bar -->
+    <!--      @click 是注册 子组件点击事件相应情况 -->
+    <!--      子组件后面跟的所有东西都是透传给子组件的参数-->
     <div class="nav-pane-bottom flex-box-h">
-      <icon-button
+      <IconButton
           :icon="AddLink"
           color="#555"
           size="20"
           stroke-width="4"
-          t-tooltip="new_conn"
+          tTooltip="new_conn"
           @click="dialogStore.openNewDialog()"
       />
-      <icon-button
+      <IconButton
           :icon="AddGroup"
           color="#555"
           size="20"
           stroke-width="4"
-          t-tooltip="new_group"
+          tTooltip="new_group"
           @click="dialogStore.openNewKeyDialog('aa:bb')"
       />
       <n-divider style="margin: 0 4px; --n-color: #aaa; width: 2px" vertical />
-      <icon-button :icon="Sort" color="#555" size="20" stroke-width="4" t-tooltip="sort_conn" @click="onSort" />
+      <IconButton :icon="Sort" color="#555" size="20" stroke-width="4" t-tooltip="sort_conn" @click="onSort" />
       <n-input placeholder="">
         <template #prefix>
           <n-icon :component="Filter" color="#aaa" size="20" />

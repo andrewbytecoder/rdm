@@ -35,6 +35,9 @@ import {
     NText,
     NEllipsis,
     NInputGroup,
+    NTree,
+    NSpin,
+    NCard,
 } from 'naive-ui'
 import { createI18n } from 'vue-i18n'
 import App from './App.vue'
@@ -77,6 +80,9 @@ app.component('NAlert', NAlert)
 app.component('NText', NText)
 app.component('NEllipsis', NEllipsis)
 app.component('NInputGroup', NInputGroup)
+app.component('NTree', NTree)
+app.component('NSpin', NSpin)
+app.component('NCard', NCard)
 
 
 app.use(

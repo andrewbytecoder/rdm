@@ -1,104 +1,75 @@
 <script setup lang="ts">
-import { h, nextTick, onMounted, reactive, ref, type VNodeChild } from 'vue'
+import { h, nextTick, onMounted, reactive, ref } from 'vue'
 import { ConnectionType } from '../../consts/connection_type'
-import useConnection from '../../stores/database'
-import {
-  NIcon,
-  NTree,
-  NDropdown,
-  useDialog,
-  useMessage,
-  type TreeOption,
-  type DropdownOption
-} from 'naive-ui'
-import ToggleFolder from '../icons/ToggleFolder.vue'
+import { NIcon, useDialog, useMessage, TreeOption } from 'naive-ui'
 import Key from '../icons/Key.vue'
 import ToggleDb from '../icons/ToggleDb.vue'
-import ToggleServer from '../icons/ToggleServer.vue'
-import { indexOf, remove, startsWith } from 'lodash-es'
+import { indexOf, remove, startsWith } from 'lodash'
 import { useI18n } from 'vue-i18n'
 import Refresh from '../icons/Refresh.vue'
-import Config from '../icons/Config.vue'
 import CopyLink from '../icons/CopyLink.vue'
-import Unlink from '../icons/Unlink.vue'
 import Add from '../icons/Add.vue'
 import Layer from '../icons/Layer.vue'
 import Delete from '../icons/Delete.vue'
 import Connect from '../icons/Connect.vue'
 import useDialogStore from '../../stores/dialog'
-import { ClipboardSetText } from '../../../wailsjs/runtime'
+import { ClipboardSetText } from '../../../wailsjs/runtime/runtime'
 import useTabStore from '../../stores/tab'
-import useConnectionStore from '../../stores/connections.js'
+import useConnectionStore from '../../stores/connections'
 
-// 类型定义 - 修复接口扩展问题
-interface MenuOption {
-  key: string
-  label: string
-  icon?: () => VNodeChild
-  type?: string
-  [key: string]: any // 允许其他属性
-}
-
-interface TreeNode extends TreeOption {
-  type: ConnectionType
-  key: string
-  label: string
-  name?: string
-  db?: number
-  redisKey?: string
-  keyType?: string
-  keys?: number
-  expanded?: boolean
-  connected?: boolean
-  opened?: boolean
-  isLeaf?: boolean
-}
-
-interface ContextPosition {
+interface ContextMenuParam {
+  show: boolean
   x: number
   y: number
+  options: any[] | null
+  currentNode: TreeOption | null
 }
 
-// 响应式数据
-const i18n = useI18n()
-const loading = ref<boolean>(false)
-const loadingConnections = ref<boolean>(false)
+interface ExtendedTreeOption extends TreeOption {
+  type: number
+  name?: string
+  db?: number
+  key?: string
+  redisKey?: string
+  opened?: boolean
+  keys?: number
+  expanded?: boolean
+}
+
+const { t } = useI18n()
+const loading = ref(false)
+const loadingConnections = ref(false)
 const expandedKeys = ref<string[]>([])
 const connectionStore = useConnectionStore()
 const tabStore = useTabStore()
 const dialogStore = useDialogStore()
 
-const contextMenuParam = reactive({
+const contextMenuParam = reactive<ContextMenuParam>({
   show: false,
   x: 0,
   y: 0,
   options: null,
   currentNode: null,
 })
-
-
-// Store hooks
-const dialog = useDialog()
-
-// 图标渲染函数
 const renderIcon = (icon: any) => {
-  return () => h(NIcon, null, { default: () => h(icon) })
+  return () => {
+    return h(NIcon, null, {
+      default: () => h(icon),
+    })
+  }
 }
-
-// 菜单选项配置
-const menuOptions: Record<ConnectionType, (option: TreeNode) => any[]> = {
-
-  [ConnectionType.RedisDB]: (option: TreeNode) => {
-    if (option.opened) {
+const menuOptions: Record<number, Function> = {
+  [ConnectionType.RedisDB]: ({ opened }: { opened: boolean }) => {
+    if (opened) {
       return [
         {
           key: 'db_reload',
-          label: i18n.t('reload') as string,
+          label: t('reload'),
           icon: renderIcon(Refresh),
         },
         {
           key: 'db_newkey',
-          label: i18n.t('new_key') as string,
+          label: t('new_key'),
           icon: renderIcon(Add),
         },
       ]
@@ -106,26 +77,26 @@ const menuOptions: Record<ConnectionType, (option: TreeNode) => any[]> = {
       return [
         {
           key: 'db_open',
-          label: i18n.t('open_db') as string,
+          label: t('open_db'),
           icon: renderIcon(Connect),
         },
       ]
     }
   },
-  [ConnectionType.RedisKey]: (option: TreeNode) => [
+  [ConnectionType.RedisKey]: () => [
     {
       key: 'key_reload',
-      label: i18n.t('reload') as string,
+      label: t('reload'),
       icon: renderIcon(Refresh),
     },
     {
       key: 'key_newkey',
-      label: i18n.t('new_key') as string,
+      label: t('new_key'),
       icon: renderIcon(Add),
     },
     {
       key: 'key_copy',
-      label: i18n.t('copy_path') as string,
+      label: t('copy_path'),
       icon: renderIcon(CopyLink),
     },
     {
@@ -134,19 +105,19 @@ const menuOptions: Record<ConnectionType, (option: TreeNode) => any[]> = {
     },
     {
       key: 'key_remove',
-      label: i18n.t('remove_path') as string,
+      label: t('remove_path'),
       icon: renderIcon(Delete),
     },
   ],
-  [ConnectionType.RedisValue]: (option: TreeNode) => [
+  [ConnectionType.RedisValue]: () => [
     {
       key: 'value_reload',
-      label: i18n.t('reload') as string,
+      label: t('reload'),
       icon: renderIcon(Refresh),
     },
     {
       key: 'value_copy',
-      label: i18n.t('copy_key') as string,
+      label: t('copy_key'),
       icon: renderIcon(CopyLink),
     },
     {
@@ -155,24 +126,31 @@ const menuOptions: Record<ConnectionType, (option: TreeNode) => any[]> = {
     },
     {
       key: 'value_remove',
-      label: i18n.t('remove_key') as string,
+      label: t('remove_key'),
       icon: renderIcon(Delete),
     },
   ],
 }
 
-// 生命周期
-onMounted(async (): Promise<void> => {
+const renderContextLabel = (option: TreeOption) => {
+  return h('div', { class: 'context-menu-item' }, option.label)
+}
+
+onMounted(async () => {
   try {
+    // TODO: Show loading list status
     loadingConnections.value = true
-    // await nextTick(() => connectionStore.initConnection())
+    // nextTick(connectionStore.initConnection)
   } finally {
     loadingConnections.value = false
   }
 })
 
-// 工具函数
-const expandKey = (key: string): void => {
+const props = defineProps({
+  server: String,
+})
+
+const expandKey = (key: string) => {
   const idx = indexOf(expandedKeys.value, key)
   if (idx === -1) {
     expandedKeys.value.push(key)
@@ -181,128 +159,145 @@ const expandKey = (key: string): void => {
   }
 }
 
-const collapseKeyAndChildren = (key: string): void => {
-  remove(expandedKeys.value, (k: string) => startsWith(k, key))
+const collapseKeyAndChildren = (key: string) => {
+  remove(expandedKeys.value, (k) => startsWith(k, key))
+  // console.log(key)
+  // const idx = indexOf(expandedKeys.value, key)
+  // console.log(JSON.stringify(expandedKeys.value))
+  // if (idx !== -1) {
+  //     expandedKeys.value.splice(idx, 1)
+  //     return true
+  // }
+  // return false
 }
 
-// 事件处理函数
-const onUpdateExpanded = (value: string[]): void => {
+const message = useMessage()
+const dialog = useDialog()
+const onUpdateExpanded = (
+    value: string[],
+    option: TreeOption,
+    meta: { node: TreeOption; action: 'expand' | 'collapse' }
+) => {
   expandedKeys.value = value
+  if (!meta.node) {
+    return
+  }
+  // console.log(JSON.stringify(meta))
+  switch (meta.action) {
+    case 'expand':
+      (meta.node as ExtendedTreeOption).expanded = true
+      break
+    case 'collapse':
+      (meta.node as ExtendedTreeOption).expanded = false
+      break
+  }
 }
 
-const renderContextLabel = (option: any): VNodeChild => {
-  return h('div', { class: 'context-menu-item' }, option.label)
-}
-
-
-const props = defineProps({
-  server: String,
-})
-
-// 修复渲染函数类型
-const renderPrefix = (info: any): VNodeChild => {
-  const option = info.option as TreeNode
+const renderPrefix = ({ option }: { option: ExtendedTreeOption }) => {
   switch (option.type) {
     case ConnectionType.RedisDB:
       return h(
           NIcon,
           { size: 20 },
-          { default: () => h(ToggleDb, { modelValue: option.opened === true }) }
+          {
+            default: () => h(ToggleDb, { modelValue: option.opened === true }),
+          }
       )
     case ConnectionType.RedisKey:
-      return h(NIcon, { size: 20 }, { default: () => h(Layer) })
+      return h(
+          NIcon,
+          { size: 20 },
+          {
+            default: () => h(Layer),
+          }
+      )
     case ConnectionType.RedisValue:
-      return h(NIcon, { size: 20 }, { default: () => h(Key) })
+      return h(
+          NIcon,
+          { size: 20 },
+          {
+            default: () => h(Key),
+          }
+      )
     default:
       return null
   }
 }
 
-const renderLabel = (info: any): string => {
-  const option = info.option as TreeNode
+const renderLabel = ({ option }: { option: ExtendedTreeOption }) => {
   switch (option.type) {
     case ConnectionType.RedisDB:
     case ConnectionType.RedisKey:
       return `${option.label} (${option.keys || 0})`
+      // case ConnectionType.RedisValue:
+      //   return `[${option.keyType}]${option.label}`
   }
   return option.label
 }
 
-const renderSuffix = (info: any): VNodeChild => {
-  return null
+const renderSuffix = ({ option }: { option: ExtendedTreeOption }) => {
+  // return h(NButton,
+  //     { text: true, type: 'primary' },
+  //     { default: () => h(Key) })
 }
 
-// 修复 nodeProps 函数类型
-const nodeProps = (info: any) => {
-  const option = info.option as TreeNode
+const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
   return {
-    onClick(): void {
-      connectionStore.select({
-        key: option.key,
+    onClick() {
+      connectionStore.select({ key: option.redisKey as  string,
         name: option.name as string,
         db: option.db as number,
-        type: option.type,
-        redisKey: option.redisKey as string
-      })
+        type: option.type as number, redisKey: option.redisKey as string })
+      // console.log('[click]:' + JSON.stringify(option))
     },
-    onDblclick: async (): Promise<void> => {
+    onDblclick: async () => {
       if (loading.value) {
         console.warn('TODO: alert to ignore double click when loading')
         return
       }
-
       switch (option.type) {
         case ConnectionType.Server:
+          option.isLeaf = false
+          break
+
         case ConnectionType.RedisDB:
           option.isLeaf = false
           break
       }
 
-      await nextTick(() => expandKey(option.key))
+      // default handle is expand current node
+      nextTick().then(() => expandKey(option.key!))
     },
-    onContextmenu(e: MouseEvent): void {
+    onContextmenu(e: MouseEvent) {
       e.preventDefault()
       const mop = menuOptions[option.type]
-      if (!mop) {
+      if (mop == null) {
         return
       }
-
-      showContextMenu.value = false
+      contextMenuParam.show = false
       nextTick().then(() => {
-        contextMenuOptions.value = mop(option)
-        currentContextNode.value = option
-        contextPos.x = e.clientX
-        contextPos.y = e.clientY
-        showContextMenu.value = true
+        contextMenuParam.options = mop(option)
+        contextMenuParam.currentNode = option
+        contextMenuParam.x = e.clientX
+        contextMenuParam.y = e.clientY
+        contextMenuParam.show = true
       })
     },
+    // onMouseover() {
+    //   console.log('mouse over')
+    // }
   }
 }
 
-// 修复 onLoadTree 函数类型
-const onLoadTree = async (node: TreeOption): Promise<void> => {
-  const message = useMessage()
-  const treeNode = node as TreeNode
-
-  switch (treeNode.type) {
-    case ConnectionType.Server:
-      loading.value = true
-      try {
-        await connectionStore.openConnection(treeNode.name!)
-      } catch (e: any) {
-        message.error(e.message)
-        treeNode.isLeaf = undefined
-      } finally {
-        loading.value = false
-      }
-      break
+const onLoadTree = async (node: ExtendedTreeOption) => {
+  switch (node.type) {
     case ConnectionType.RedisDB:
       loading.value = true
       try {
-        await connectionStore.openDatabase(treeNode.name!, treeNode.db!)
+        await connectionStore.openDatabase(node.name!, node.db!)
       } catch (e: any) {
         message.error(e.message)
-        treeNode.isLeaf = undefined
+        node.isLeaf = undefined
       } finally {
         loading.value = false
       }
@@ -310,40 +305,40 @@ const onLoadTree = async (node: TreeOption): Promise<void> => {
   }
 }
 
-const handleSelectContextMenu = (key: string): void => {
-  const message = useMessage()
-  showContextMenu.value = false
-  if (!currentContextNode.value) return
-
-  const { name, db, key: nodeKey, redisKey } = currentContextNode.value
-
+const handleSelectContextMenu = (key: string) => {
+  contextMenuParam.show = false
+  const { name, db, key: nodeKey, redisKey } = contextMenuParam.currentNode as ExtendedTreeOption
   switch (key) {
     case 'server_disconnect':
-      connectionStore.closeConnection(nodeKey).then((success: boolean) => {
+      connectionStore.closeConnection(nodeKey!).then((success) => {
         if (success) {
-          collapseKeyAndChildren(nodeKey)
+          collapseKeyAndChildren(nodeKey!)
           tabStore.removeTabByName(name!)
         }
       })
       break
+      // case 'server_reload':
+      // case 'db_reload':
+      //     connectionStore.loadKeyValue()
+      //     break
     case 'db_newkey':
     case 'key_newkey':
-      dialogStore.openNewKeyDialog(redisKey as string, name!, db as number)
+      dialogStore.openNewKeyDialog(redisKey!, name!, db!)
       break
     case 'key_remove':
     case 'value_remove':
       dialog.warning({
-        title: i18n.t('warning') as string,
-        content: i18n.t('delete_key_tip', { key: redisKey }) as string,
+        title: t('warning'),
+        content: t('delete_key_tip', { key: redisKey }),
         closable: false,
         autoFocus: false,
         transformOrigin: 'center',
-        positiveText: i18n.t('confirm') as string,
-        negativeText: i18n.t('cancel') as string,
+        positiveText: t('confirm'),
+        negativeText: t('cancel'),
         onPositiveClick: () => {
-          connectionStore.removeKey(name!, db!, redisKey!).then((success: boolean) => {
+          connectionStore.removeKey(name!, db!, redisKey!).then((success) => {
             if (success) {
-              message.success(i18n.t('delete_key_succ', { key: redisKey }) as string)
+              message.success(t('delete_key_succ', { key: redisKey }))
             }
           })
         },
@@ -352,12 +347,12 @@ const handleSelectContextMenu = (key: string): void => {
     case 'key_copy':
     case 'value_copy':
       ClipboardSetText(redisKey!)
-          .then((succ: boolean) => {
+          .then((succ) => {
             if (succ) {
-              message.success(i18n.t('copy_succ') as string)
+              message.success(t('copy_succ'))
             }
           })
-          .catch((e: Error) => {
+          .catch((e: any) => {
             message.error(e.message)
           })
       break
@@ -366,8 +361,8 @@ const handleSelectContextMenu = (key: string): void => {
   }
 }
 
-const handleOutsideContextMenu = (): void => {
-  showContextMenu.value = false
+const handleOutsideContextMenu = () => {
+  contextMenuParam.show = false
 }
 </script>
 
@@ -375,7 +370,9 @@ const handleOutsideContextMenu = (): void => {
   <n-tree
       :block-line="true"
       :block-node="true"
-      :data="connectionStore.connections"
+      :animated="false"
+      :cancelable="false"
+      :data="connectionStore.databases[(props.server as String).toString()] || []"
       :expand-on-click="false"
       :expanded-keys="expandedKeys"
       :node-props="nodeProps"
@@ -388,13 +385,12 @@ const handleOutsideContextMenu = (): void => {
       virtual-scroll
   />
   <n-dropdown
-      v-if="contextMenuOptions"
       :animated="false"
-      :options="contextMenuOptions"
+      :options="contextMenuParam.options"
       :render-label="renderContextLabel"
-      :show="showContextMenu"
-      :x="contextPos.x"
-      :y="contextPos.y"
+      :show="contextMenuParam.show"
+      :x="contextMenuParam.x"
+      :y="contextMenuParam.y"
       placement="bottom-start"
       trigger="manual"
       @clickoutside="handleOutsideContextMenu"
@@ -402,5 +398,4 @@ const handleOutsideContextMenu = (): void => {
   />
 </template>
 
-<style lang="scss" scoped>
-</style>
+<style lang="scss" scoped></style>

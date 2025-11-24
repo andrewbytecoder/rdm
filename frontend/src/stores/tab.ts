@@ -1,6 +1,5 @@
-import {find, findIndex, isEmpty, size, stubTrue} from 'lodash'
+import {find, findIndex, size} from 'lodash'
 import { defineStore } from 'pinia'
-import {tupleExpression} from "@babel/types";
 
 export interface TabItem {
     name: string
@@ -19,10 +18,18 @@ interface TabStoreState {
     tabList: TabItem[]
     activatedTab: string
     activatedIndex: number
+    nav: string
+    asideWidth: number
 }
 
 const useTabStore = defineStore('tab', {
+    /**
+     *
+     * @returns {{tabList: TabItem[], activatedTab: string, activatedIndex: number}}
+     */
     state: (): TabStoreState => ({
+        nav: 'server',
+        asideWidth: 300,
         tabList: [],
         activatedTab: '',
         activatedIndex: 0,
@@ -30,11 +37,7 @@ const useTabStore = defineStore('tab', {
 
     getters: {
         tabs(): TabItem[] {
-            return this.tabList.length === 0 ? [{
-                name: 'default',
-                title: 'new tab',
-                blank: true
-            }] : this.tabList
+            return this.tabList
         },
 
         currentTab(): TabItem | null {
@@ -57,6 +60,7 @@ const useTabStore = defineStore('tab', {
         //     })
         //     this.activatedIndex = size(this.tabList) - 1
         // },
+
     },
 
 
@@ -68,6 +72,11 @@ const useTabStore = defineStore('tab', {
                 blank: true,
             })
             this.activatedIndex = size(this.tabList) - 1
+        },
+
+        _setActivatedIndex(idx:  number) {
+            this.activatedIndex = idx
+            this.nav = idx >= 0 ? 'structure' : 'server'
         },
 
         upsertTab({ server, db, type, ttl, key, value }: {
