@@ -14,6 +14,7 @@ export interface TabItem {
     ttl?: number
 }
 
+// 界面上tab状态栏目
 interface TabStoreState {
     tabList: TabItem[]
     activatedTab: string
@@ -41,17 +42,26 @@ const useTabStore = defineStore('tab', {
         },
 
         currentTab(): TabItem | null {
-            return this.tabs[this.activatedIndex || 0] || null
+            // 如果 activatedIndex 越界，优先返回第一个 tab（如果存在），否则返回 null
+            const idx = (this.activatedIndex >= 0 && this.activatedIndex < this.tabs.length)
+                ? this.activatedIndex
+                : 0
+            return this.tabs[idx] || null
         },
 
-        currentTabIndex(): TabItem | null {
+        currentTabIndex() : TabItem | null{
             const len = size(this.tabs)
+            if (len === 0) return null
+
             if (this.activatedIndex < 0 || this.activatedIndex >= len) {
                 this.activatedIndex = 0
             }
-            return this.tabs[this.activatedIndex] || null
-        },
 
+            const idx = (this.activatedIndex >= 0 && this.activatedIndex < len)
+                ? this.activatedIndex
+                : 0
+            return this.tabs[idx] || null
+        },
         // newBlankTab(): void {
         //     this.tabList.push({
         //         name: Date.now().toString(),
@@ -74,9 +84,21 @@ const useTabStore = defineStore('tab', {
             this.activatedIndex = size(this.tabList) - 1
         },
 
-        _setActivatedIndex(idx:  number) {
+        /**
+         *
+         * @param {number} idx
+         * @param {boolean} [switchNav]
+         * @private
+         */
+        _setActivatedIndex(idx: number, switchNav: boolean): void {
             this.activatedIndex = idx
-            this.nav = idx >= 0 ? 'structure' : 'server'
+            if (switchNav) {
+                this.nav = idx >= 0 ? 'structure' : 'server'
+            } else {
+                if (idx < 0) {
+                    this.nav = 'server'
+                }
+            }
         },
 
         upsertTab({ server, db, type, ttl, key, value }: {
@@ -135,7 +157,12 @@ const useTabStore = defineStore('tab', {
         },
 
         switchTab(tabIndex: number): void {
-            // Implementation remains the same as original
+            const len = size(this.tabList)
+            if (tabIndex < 0 || tabIndex >= len) {
+                return
+            }
+            // 使用内部方法以统一 nav 的设置
+            this._setActivatedIndex(tabIndex, true)
         },
 
         removeTab(tabIndex: number): null | TabItem {
@@ -147,17 +174,30 @@ const useTabStore = defineStore('tab', {
             if (tabIndex < 0 || tabIndex >= len) {
                 return null
             }
-            const removed = this.tabList.splice(tabIndex, 1)
 
-            if (len === 1) {
+            const removed = this.tabList.splice(tabIndex, 1)
+            const removedItem = size(removed) > 0 ? removed[0] : null
+
+            if (this.tabList.length === 0) {
+                // 如果已无 tab，创建一个空白 tab
                 this.newBlankTab()
+                this.activatedIndex = 0
             } else {
-                this.activatedIndex -= 1
+                // 根据删除位置调整 activatedIndex
+                if (tabIndex < this.activatedIndex) {
+                    // 删除在当前激活项左侧，索引左移一位
+                    this.activatedIndex -= 1
+                } else if (tabIndex === this.activatedIndex) {
+                    // 删除的是当前激活项，选择删除后右侧的项（如果存在），否则选择最后一项
+                    const newIndex = Math.min(tabIndex, this.tabList.length - 1)
+                    this.activatedIndex = newIndex
+                }
+                // 如果删除在激活项右侧，不需要调整 activatedIndex
                 if (this.activatedIndex < 0 && this.tabList.length > 0) {
                     this.activatedIndex = 0
                 }
             }
-            return size(removed) > 0 ? removed[0] : null
+            return removedItem
         },
 
         removeTabByName(tabName: string): void {

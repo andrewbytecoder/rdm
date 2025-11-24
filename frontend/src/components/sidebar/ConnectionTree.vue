@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import useDialogStore from '../../stores/dialog'
 import { h, nextTick, onMounted, reactive, ref } from 'vue'
-import useConnectionStore from '../../stores/connections'
+import useConnectionStore,  { DatabaseItem } from '../../stores/connections'
 import { NIcon, useMessage, TreeOption } from 'naive-ui'
 import { ConnectionType } from '../../consts/connection_type'
 import ToggleFolder from '../icons/ToggleFolder.vue'
@@ -9,7 +9,6 @@ import ToggleServer from '../icons/ToggleServer.vue'
 import { indexOf } from 'lodash'
 import Config from '../icons/Config.vue'
 import Delete from '../icons/Delete.vue'
-import Refresh from '../icons/Refresh.vue'
 import Unlink from '../icons/Unlink.vue'
 import CopyLink from '../icons/CopyLink.vue'
 import Connect from '../icons/Connect.vue'
@@ -42,6 +41,7 @@ const dialogStore = useDialogStore()
 const message = useMessage()
 
 const expandedKeys = ref<string[]>([])
+const selectedKeys = ref<string[]>([])
 
 onMounted(async () => {
   try {
@@ -82,14 +82,10 @@ const menuOptions: Record<number, Function> = {
       icon: renderIcon(Delete),
     },
   ],
-  [ConnectionType.Server]: ({ connected }: { connected: boolean }) => {
+  [ConnectionType.Server]: ({ name }: DatabaseItem ) => {
+    const connected = connectionStore.isConnected(name)
     if (connected) {
       return [
-        {
-          key: 'server_reload',
-          label: t('reload'),
-          icon: renderIcon(Refresh),
-        },
         {
           key: 'server_close',
           label: t('disconnect'),
@@ -166,7 +162,7 @@ const renderPrefix = ({ option }: { option: ExtendedTreeOption }) => {
           NIcon,
           { size: 20 },
           {
-            default: () => h(ToggleServer, { modelValue: !!connected }),
+            default: () => h(ToggleServer, { modelValue: connected }),
           }
       )
     default:
@@ -174,23 +170,32 @@ const renderPrefix = ({ option }: { option: ExtendedTreeOption }) => {
   }
 }
 
-const onUpdateExpandedKeys = (
-    value: string[],
-    option: TreeOption,
-    meta: { node: TreeOption; action: 'expand' | 'collapse' }
-) => {
-  expandedKeys.value = value
+// const onUpdateExpandedKeys = (
+//     value: string[],
+//     option: TreeOption,
+//     meta: { node: TreeOption; action: 'expand' | 'collapse' }
+// ) => {
+//   expandedKeys.value = value
+// }
+
+const onUpdateExpandedKeys = (keys: string[], option: TreeOption, meta: { node: TreeOption; action: 'expand' | 'collapse' }) => {
+  expandedKeys.value = keys
+}
+
+const onUpdateSelectedKeys = (keys: string[], option: TreeOption, meta: { node: TreeOption; action: 'expand' | 'collapse' }) => {
+  selectedKeys.value = keys
 }
 
 /**
  * Open connection
  * @param name
- * @returns {Promise<void>}
  */
 const openConnection = async (name: string) => {
   try {
-    openingConnection.value = true
-    await connectionStore.openConnection(name)
+    if (!connectionStore.isConnected(name)) {
+      openingConnection.value = true
+      await connectionStore.openConnection(name)
+    }
     tabStore.upsertTab({
       server: name,
       db: 0,
@@ -223,6 +228,7 @@ const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
         contextMenuParam.x = e.clientX
         contextMenuParam.y = e.clientY
         contextMenuParam.show = true
+        selectedKeys.value = [option.key as string]
       })
     },
   }
@@ -238,6 +244,10 @@ const handleSelectContextMenu = (key: string) => {
   switch (key) {
     case 'server_open':
       openConnection(name!).then(() => {})
+      break
+    case 'server_close':
+      connectionStore.closeConnection(name as string)
+      break
   }
   console.warn('TODO: handle context menu:' + key)
 }
@@ -252,8 +262,10 @@ const handleSelectContextMenu = (key: string) => {
       :data="connectionStore.connections"
       :expand-on-click="true"
       :expanded-keys="expandedKeys"
+      :on-update:selected-keys="onUpdateSelectedKeys"
       :node-props="nodeProps"
       :on-update:expanded-keys="onUpdateExpandedKeys"
+      :selected-keys="selectedKeys"
       :render-label="renderLabel"
       :render-prefix="renderPrefix"
       class="fill-height"
