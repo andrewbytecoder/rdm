@@ -98,7 +98,7 @@ func (c *ConnectionService) GetConnection(name string) (resp types.JSResp) {
 }
 
 // SaveConnection save connection config to local profile
-func (c *ConnectionService) SaveConnection(name string, param types.Connection) (resp types.JSResp) {
+func (c *ConnectionService) SaveConnection(name string, param types.ConnectionConfig) (resp types.JSResp) {
 	var err error
 	if len(name) > 0 {
 		// update connection
@@ -111,6 +111,39 @@ func (c *ConnectionService) SaveConnection(name string, param types.Connection) 
 	} else {
 		resp.Success = true
 	}
+	return
+}
+
+// CreateGroup create new group
+func (c *ConnectionService) CreateGroup(name string) (resp types.JSResp) {
+	err := c.conns.CreateGroup(name)
+	if err != nil {
+		resp.Msg = err.Error()
+		return
+	}
+	resp.Success = true
+	return
+}
+
+// RenameGroup rename group
+func (c *ConnectionService) RenameGroup(oldName, newName string) (resp types.JSResp) {
+	err := c.conns.RenameGroup(oldName, newName)
+	if err != nil {
+		resp.Msg = err.Error()
+		return
+	}
+	resp.Success = true
+	return
+}
+
+// RemoveGroup remove group
+func (c *ConnectionService) RemoveGroup(name string, includeConnection bool) (resp types.JSResp) {
+	err := c.conns.RemoveGroup(name, includeConnection)
+	if err != nil {
+		resp.Msg = err.Error()
+		return
+	}
+	resp.Success = true
 	return
 }
 
@@ -201,18 +234,9 @@ func (c *ConnectionService) getRedisClient(connName string, db int) (*redis.Clie
 	if ok {
 		rdb, ctx = item.rdb, item.ctx
 	} else {
-		connGroups := c.conns.GetConnections()
-		var selConn *types.Connection
-		for _, connGroup := range connGroups {
-			for _, conn := range connGroup.Connections {
-				if conn.Name == connName {
-					selConn = &conn
-					break
-				}
-			}
-		}
+		selConn := c.conns.GetConnection(connName)
 		if selConn == nil {
-			return nil, nil, errors.New("no match connection connName")
+			return nil, nil, fmt.Errorf("no match connection \"%s\"", connName)
 		}
 
 		rdb = redis.NewClient(&redis.Options{

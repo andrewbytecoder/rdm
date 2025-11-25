@@ -5,6 +5,7 @@ import {
     AddListItem,
     AddZSetValue,
     CloseConnection,
+    CreateGroup,
     GetConnection,
     GetKeyValue,
     ListConnection,
@@ -12,7 +13,9 @@ import {
     OpenDatabase,
     RemoveKey,
     RemoveConnection,
+    RemoveGroup,
     RenameKey,
+    RenameGroup,
     SaveConnection,
     SetHashValue,
     SetKeyTTL,
@@ -59,9 +62,9 @@ export interface DatabaseItem {
     isLeaf?: boolean
 }
 
-interface ConnectionGroup {
-    groupName: string
-    connections: Array<{name: string}>
+interface ConnectionGroup extends types.ConnectionConfig{
+    Type: string
+    connections: Array<types.ConnectionConfig>
 }
 
 interface ListConnectionResponse {
@@ -140,7 +143,7 @@ interface UpdateZSetValueResponse {
 
 interface ConnectionState {
     groups: string[], // all group name
-    connections: ConnectionItem[]
+    connections: types.ConnectionConfig[]
     databases: Record<string, DatabaseItem[]>
 }
 
@@ -175,22 +178,11 @@ const useConnectionStore = defineStore('connections', {
             }
             const conns: ConnectionItem[] = []
             const groups: string[] = []
-            const { data = [{ groupName: '', connections: [] }] } = await ListConnection() as ListConnectionResponse
-            for (let i = 0; i < data.length; i++) {
-                const group = data[i]
+            const  data = await ListConnection() as ListConnectionResponse
+            for (const conn of data) {
                 // Top level group
-                if (isEmpty(group.groupName)) {
-                    const len = size(group.connections)
-                    for (let j = 0; j < len; j++) {
-                        const item = group.connections[j]
-                        conns.push({
-                            key: item.name,
-                            label: item.name,
-                            name: item.name,
-                            type: ConnectionType.Server,
-                            // isLeaf: false,
-                        })
-                    }
+                if (conn.type === 'group') {
+
                 } else {
                     groups.push(group.groupName)
                     // Custom group

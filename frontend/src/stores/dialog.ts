@@ -26,6 +26,9 @@ const useDialogStore = defineStore('dialog', {
         connDialogVisible: false,
         connParam: new types.Connection(),
 
+        groupDialogVisible: false,
+        editGroup: '',
+
         newKeyParam: {
             prefix: '',
             server: '',
@@ -75,6 +78,21 @@ const useDialogStore = defineStore('dialog', {
         },
         closeEditDialog() {
             this.connDialogVisible = false
+        },
+
+        openNewGroupDialog() {
+            this.groupDialogVisible = true
+        },
+        closeNewGroupDialog() {
+            this.groupDialogVisible = false
+        },
+
+        openRenameGroupDialog(name: string) {
+            this.editGroup = name
+            this.groupDialogVisible = true
+        },
+        closeRenameGroupDialog() {
+            this.groupDialogVisible = false
         },
 
         openRenameKeyDialog(server: string, db: number, key: string) {

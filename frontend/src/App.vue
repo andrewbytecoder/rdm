@@ -11,7 +11,7 @@ import { NMessageProvider, NConfigProvider,GlobalThemeOverrides, NDialogProvider
 import plaintext from 'highlight.js/lib/languages/plaintext'
 import AddFieldsDialog from './components/dialogs/AddFieldsDialog.vue'
 import AppContent from "./AppContent.vue";
-import 'highlight.js/styles/default.css'
+import GroupDialog from './components/dialogs/GroupDialog.vue'
 
 interface Data {
   asideWith: number
@@ -65,6 +65,7 @@ const themeOverrides = {
 
         <!-- 5. 所有全局的模态对话框 -->
         <ConnectionDialog />
+        <GroupDialog />
         <NewKeyDialog />
         <AddFieldsDialog />
         <RenameKeyDialog />
