@@ -44,6 +44,7 @@ export interface ConnectionItem {
     redisKey?: string
 }
 
+// 数据库 每个redis 默认 16个数据库
 export interface DatabaseItem {
     key: string
     label: string

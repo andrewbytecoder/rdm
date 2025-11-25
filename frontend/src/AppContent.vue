@@ -22,7 +22,7 @@ const themeVars = useThemeVars()
 const tabStore = useTabStore()
 // 界面大小是否可以拖动
 const data: Data = reactive({
-  navMenuWidth: 60,
+  navMenuWidth: 50,
   hoverResize: false,
   resizing: false,
 })
@@ -84,17 +84,22 @@ const dragging = computed<boolean>(() => {
 <template>
   <!-- app content-->
   <div id="app-container" :class="{ dragging }" class="flex-box-h">
+
+<!--    v-model定义的数据在子组件中能通过 @update:value事件触发值 更新-->
+<!--    导航栏中选择具体的图标，然后更新 nav 根据nav然后触发下面显示面板显示不同的界面-->
     <nav-menu v-model:value="tabStore.nav" :width="data.navMenuWidth" />
 <!--    <nav-menu  />-->
     <!-- structure page-->
+<!--    nav.menu中点击会修改 tabStore.nav 这里决定界面渲染什么 -->
     <div v-show="tabStore.nav === 'structure'" class="flex-box-h flex-item-expand">
       <div id="app-side" :style="{ width: asideWidthVal }" class="flex-box-h flex-item">
-        <database-pane
+        <DatabasePane
             v-for="t in tabStore.tabs"
             v-show="get(tabStore.currentTab, 'name') === t.name"
             :key="t.name"
             class="flex-item-expand"
         />
+<!--        允许拖动的侧边栏-->
         <div
             :class="{
                         'resize-divider-hover': data.hoverResize,
@@ -102,17 +107,17 @@ const dragging = computed<boolean>(() => {
                     }"
             class="resize-divider"
             @mousedown="startResize"
-            @mouseout="data.hoverResize = false"
+            @mouseout="data.hoverResize = true"
             @mouseover="data.hoverResize = true"
         />
       </div>
-      <content-pane class="flex-item-expand" />
+      <ContentPane class="flex-item-expand" />
     </div>
 
     <!-- server list page -->
     <div v-show="tabStore.nav === 'server'" class="flex-box-h flex-item-expand">
       <div id="app-side" :style="{ width: asideWidthVal }" class="flex-box-h flex-item">
-        <connection-pane class="flex-item-expand" />
+        <ConnectionPane class="flex-item-expand" />
         <div
             :class="{
                         'resize-divider-hover': data.hoverResize,
@@ -124,7 +129,7 @@ const dragging = computed<boolean>(() => {
             @mouseover="data.hoverResize = true"
         />
       </div>
-      <content-server-pane class="flex-item-expand" />
+      <ContentServerPane class="flex-item-expand" />
     </div>
 
     <!-- log page -->
@@ -156,7 +161,7 @@ const dragging = computed<boolean>(() => {
     }
 
     .resize-divider-hover {
-      width: 5px;
+      width: 3px;
     }
 
     .resize-divider-drag {

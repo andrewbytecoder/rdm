@@ -10,18 +10,18 @@ import { computed } from 'vue'
 import { get } from 'lodash'
 
 const tabStore = useTabStore()
-const currentName = computed(() => get(tabStore.currentTab, 'name', ''))
+const currentName = computed((): string => get(tabStore.currentTab, 'name', ''))
 </script>
 
 <template>
     <div class="nav-pane-container flex-box-v">
-        <database-tree :server="currentName" />
-
+        <DatabaseTree :server="currentName" />
         <!-- bottom function bar -->
+<!--      当显示数据库列表时界面下的按钮是实现的是空的-->
         <div class="nav-pane-bottom flex-box-h">
-            <icon-button :icon="AddLink" color="#555" size="20" stroke-width="4" t-tooltip="new_conn" />
-            <icon-button :icon="AddGroup" color="#555" size="20" stroke-width="4" t-tooltip="new_group" />
-            <n-input placeholder="">
+            <IconButton :icon="AddLink" color="#555" size="20" stroke-width="4" t-tooltip="new_conn" />
+            <IconButton :icon="AddGroup" color="#555" size="20" stroke-width="4" t-tooltip="new_group" />
+            <n-input placeholder="db">
                 <template #prefix>
                     <n-icon :component="Filter" color="#aaa" size="20" />
                 </template>

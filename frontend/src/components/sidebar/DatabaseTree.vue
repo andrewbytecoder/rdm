@@ -15,6 +15,7 @@ import Connect from '../icons/Connect.vue'
 import useDialogStore from '../../stores/dialog'
 import { ClipboardSetText } from '../../../wailsjs/runtime'
 import useConnectionStore from '../../stores/connections'
+import { renderIcon } from '../../utils/render_model'
 
 interface ContextMenuParam {
   show: boolean
@@ -50,15 +51,10 @@ const contextMenuParam = reactive<ContextMenuParam>({
   options: null,
   currentNode: null,
 })
-const renderIcon = (icon: any) => {
-  return () => {
-    return h(NIcon, null, {
-      default: () => h(icon),
-    })
-  }
-}
+
+//  Record<number, Function> 定义一个键值对，key为number，value为Function
 const menuOptions: Record<number, Function> = {
-  [ConnectionType.RedisDB]: ({ opened }: { opened: boolean }) => {
+  [ConnectionType.RedisDB]: (opened: boolean) => {
     if (opened) {
       return [
         {
@@ -268,6 +264,7 @@ const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
         return
       }
       contextMenuParam.show = false
+      //  在下一帧刷新执行
       nextTick().then(() => {
         contextMenuParam.options = mop(option)
         contextMenuParam.currentNode = option
@@ -356,10 +353,10 @@ const handleOutsideContextMenu = () => {
   <n-tree
       :block-line="true"
       :block-node="true"
-      :animated="false"
+      :animated="true"
       :cancelable="false"
       :data="connectionStore.databases[(props.server as String).toString()] || []"
-      :expand-on-click="false"
+      :expand-on-click="true"
       :expanded-keys="expandedKeys"
       :on-update:selected-keys="onUpdateSelectedKeys"
       :node-props="nodeProps"

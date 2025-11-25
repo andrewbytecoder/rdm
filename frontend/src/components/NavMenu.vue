@@ -12,30 +12,43 @@ import { BrowserOpenURL } from '../../wailsjs/runtime'
 import Log from './icons/Log.vue'
 import useConnectionStore from '../stores/connections.js'
 import Update from "./icons/Update.vue";
+import About from "./icons/About.vue";
 
 // 类型定义
 type MenuItemKey = 'structure' | 'server' | 'preferences' | 'about' | 'update'
 
+// 使用Naive UI主题变量
 const themeVars = useThemeVars()
 
-const props = defineProps({
-  value: {
-    type: String,
-    default: 'server'
-  },
-  width: {
-    type: Number,
-    default: 60
-  },
-})
+// // 定义组件接收的props属性
+// const props = defineProps({
+//   value: {
+//     type: String,
+//     default: 'server'
+//   },
+//   width: {
+//     type: Number,
+//     default: 60
+//   },
+// })
 
-const emit = defineEmits(['update:value'])
-const iconSize = computed(() => Math.floor(props.width * 0.4))
+// 出来的数据是引用 ref类型，如果在js中需要进行解引用
+// 用于辅助 v-model进行数据解析
+const value = defineModel<string>('value', { default: 'server' })
+//  主要是父组件中的属性都能通过  defineModel进行定义
+//  父组件中定义了属性，这里进行双向绑定，但是因为父组件不会接受这里的事件触发，因此这里实现的效果只是接受父组件的事件
+const width = defineModel<number>('width', { default: 60 })
+
+// 定义组件发出的事件
+// const emit = defineEmits(['update:value'])
+const iconSize = computed(() => Math.floor(width.value  * 0.4))
 
 // 渲染图标函数
 const renderIcon = (icon: any) => {
   return () => h(NIcon, null, { default: () => h(icon) })
 }
+
+// 使用连接状态存储
 const connectionStore = useConnectionStore()
 const i18n = useI18n()
 
@@ -43,8 +56,8 @@ const i18n = useI18n()
 const menuOptions = computed<MenuOption[]>(() => {
   return [
     {
-      label: i18n.t('structure'),
-      key: 'structure',
+      label: i18n.t('structure'), // 国际化显示文本，可通过i18n进行自动国际化处理
+      key: 'structure',   // 菜单当行显示标识符
       icon: renderIcon(ToggleDb),
       show: connectionStore.anyConnectionOpened,
     },
@@ -72,6 +85,7 @@ const preferencesOptions = computed<DropdownOption[]>(() => {
     {
       label: i18n.t('about'),
       key: 'about',
+      icon: renderIcon(About),
     },
     {
       label: i18n.t('check_update'),
@@ -111,15 +125,15 @@ const openGithub = () => {
 <template>
   <div id="app-nav-menu"
        :style="{
-          width: props.width + 'px',
+          width: width + 'px',
        }"
        class="flex-box-v">
+<!--   @update:value="(val:  string) => emit('update:value', val)" 更新父组件的 v-model:value值  -->
     <n-menu
-        :collapsed-width="props.width"
-        :value="props.value"
+        v-model:collapsed-width="width"
+        v-model:value="value"
         :collapsed="true"
         :collapsed-icon-size="iconSize"
-        @update:value="(val:  string) => emit('update:value', val)"
         :options="menuOptions"
     ></n-menu>
 <!--  用来撑满中间空白区域-->
