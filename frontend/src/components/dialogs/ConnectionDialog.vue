@@ -134,7 +134,9 @@ const onSaveConnection = async () => {
     return
   }
 
+  // 弹窗提示连接诶成功
   message.success(i18n.t('handle_succ'))
+  // 关闭弹窗
   onClose()
 }
 

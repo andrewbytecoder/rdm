@@ -235,6 +235,7 @@ const removeGroup = async (name: string) => {
   })
 }
 
+//  todo 双击打开
 const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
   return {
     onDblclick: async () => {
