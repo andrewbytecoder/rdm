@@ -2,17 +2,17 @@ package services
 
 import "sync"
 
-type storageService struct {
+type StorageService struct {
 }
 
-var storage *storageService
+var s *StorageService
 var onceStorage sync.Once
 
-func Storage() *storageService {
-	if storage == nil {
+func Storage() *StorageService {
+	if s == nil {
 		onceStorage.Do(func() {
-			storage = &storageService{}
+			s = &StorageService{}
 		})
 	}
-	return storage
+	return s
 }

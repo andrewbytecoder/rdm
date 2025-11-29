@@ -1,19 +1,19 @@
 import { defineStore } from 'pinia'
-import { findIndex, get, isEmpty, last, map, remove, size, sortedIndexBy, split, uniq } from 'lodash'
+import { endsWith, findIndex, get, isEmpty, last, size, split, uniq } from 'lodash'
 import {
     AddHashField,
     AddListItem,
     AddZSetValue,
     CloseConnection,
     CreateGroup,
+    DeleteConnection,
+    DeleteGroup,
+    DeleteKey,
     GetConnection,
     GetKeyValue,
     ListConnection,
     OpenConnection,
     OpenDatabase,
-    RemoveKey,
-    RemoveConnection,
-    RemoveGroup,
     RenameKey,
     RenameGroup,
     SaveConnection,
@@ -31,7 +31,6 @@ import { ConnectionType } from '../consts/connection_type.js'
 import useTabStore from './tab.js'
 import {types} from "../../wailsjs/go/models";
 import {ConnectionItem} from '../config/dbs'
-import key from "../components/icons/Key.vue";
 
 const separator = ':'
 
@@ -65,6 +64,9 @@ interface KeyItem {
 
 interface OpenDatabaseResponse extends Record<string, KeyItem> {}
 
+interface ScanKeysItem {
+    keys: string[]
+}
 
 interface SetHashValueResponse {
     data?: {
@@ -114,6 +116,7 @@ interface ConnectionState {
     groups: string[], // all group name
     connections: ConnectionItem[]
     databases: Record<string, DatabaseItem[]>
+    nodeMap: Record<string, any>, // all node in opened connections group by server+db and key+type
 }
 
 interface SelectParams {
@@ -125,10 +128,15 @@ interface SelectParams {
 }
 
 const useConnectionStore = defineStore('connections', {
+    /**
+     *
+     * @returns {{groups: string[], databases: Object<string, DatabaseItem[]>, connections: ConnectionItem[]}}
+     */
     state: (): ConnectionState => ({
-        groups: [], // all group name
+        groups: [], // all group name set
         connections: [], // all connections
-        databases: {}, // all databases in opened connections group by name
+        databases: {}, // all databases in opened connections group by server name
+        nodeMap: {}, // all node in opened connections group by server+db and key+type
     }),
     getters: {
         anyConnectionOpened(): boolean {
@@ -266,10 +274,10 @@ const useConnectionStore = defineStore('connections', {
         },
 
         /**
-         * save connection
+         * save connection after sort
          * @returns {Promise<void>}
-          */
-        async saveConnectionSort(): Promise<void> {
+         */
+        async saveConnectionSorted(): Promise<void> {
             const mapToList = (conns: ConnectionItem[]):types.Connection[] => {
                 const list: types.Connection[] = []
                 for (const conn of conns) {
@@ -385,10 +393,10 @@ const useConnectionStore = defineStore('connections', {
          * @param name
          * @returns {Promise<{success: boolean, [msg]: string}>}
          */
-        async removeConnection(name: string):Promise<types.JSResp> {
+        async deleteConnection(name: string):Promise<types.JSResp> {
             // close connection first
             await this.closeConnection(name)
-            const { success, msg } = await RemoveConnection(name)
+            const { success, msg } = await DeleteConnection(name)
             if (!success) {
                 return { success: false, msg }
             }
@@ -435,7 +443,7 @@ const useConnectionStore = defineStore('connections', {
          * @returns {Promise<{success: boolean, [msg]: string}>}
          */
         async deleteGroup(name:string, includeConn:boolean):Promise<{success: boolean, msg: string}> {
-            const { success, msg } = await RemoveGroup(name, includeConn)
+            const { success, msg } = await DeleteGroup(name, includeConn)
             if (!success) {
                 return { success: false, msg }
             }
@@ -450,20 +458,34 @@ const useConnectionStore = defineStore('connections', {
          * @returns {Promise<void>}
          */
         async openDatabase(connName: string, db: number): Promise<void> {
-            const data = await OpenDatabase(connName, db) as OpenDatabaseResponse
-            // 使用Objectt能将map类型的数据返回按照key值返回数组数据
-            const keys: string[]   = Object.keys( data)
+            const { data, success, msg } = await OpenDatabase(connName, db)
+            if (!success) {
+                throw new Error(msg)
+            }
+            const keys = (data as ScanKeysItem).keys
+            const dbs = this.databases[connName]
+            dbs[db].opened = true
             if (isEmpty(keys)) {
-                console.log('openDatabase no keys loaded')
-                const dbs = this.databases[connName]
                 dbs[db].children = []
-                dbs[db].opened = true
                 return
             }
-            // append db node to current connection's children
-            this._updateNodeChildren(connName, db, keys)
-        },
 
+            // append db node to current connection's children
+            this._addKeyNodes(connName, db, keys)
+            this._tidyNodeChildren(dbs[db])
+        },
+        /**
+         * reopen database
+         * @param connName connection name
+         * @param db database index
+         * @returns {Promise<void>}
+         */
+        async reopenDatabase(connName: string, db: number): Promise<void> {
+            const dbs = this.databases[connName]
+            dbs[db].children = undefined
+            dbs[db].isLeaf = false
+            delete this.nodeMap[`${connName}#${db}`]
+        },
         /**
          * load redis key
          * @param server
@@ -496,123 +518,176 @@ const useConnectionStore = defineStore('connections', {
          * scan keys with prefix
          * @param {string} connName
          * @param {number} db
+         * @param {string} [prefix] full reload database if prefix is null
+         * @returns {Promise<{keys: string[]}>}
+         */
+        async scanKeys(connName: string, db: number, prefix: string):Promise<{keys: string[], success: boolean}>{
+            const { data, success, msg } = await ScanKeys(connName, db, prefix || '*')
+            if (!success) {
+                throw new Error(msg)
+            }
+            // data 是一个 Record<"keys", string[]> 类型的数据
+            const keys = (data as ScanKeysItem).keys
+            return { keys, success }
+        },
+        /**
+         * load keys with prefix
+         * @param {string} connName
+         * @param {number} db
          * @param {string} prefix
          * @returns {Promise<void>}
          */
-        async scanKeys(connName: string, db: number, prefix: string): Promise<void> {
-            const data = await ScanKeys(connName, db, prefix)
-            if (isEmpty( data)) {
-                throw new Error('scanKeys no keys found')
-            }
-            // remove current keys below prefix
-            const prefixPart = split(prefix, separator)
-            const dbs = this.databases[connName]
-            let node = dbs[db]
-            for (const key of prefixPart) {
-                const idx = findIndex(node.children, { label: key })
-                if (idx === -1) {
-                    node = {}  as DatabaseItem
-                    break
+        async loadKeys(connName:string, db:number, prefix: string) {
+            let scanPrefix = prefix
+            if (isEmpty(scanPrefix)) {
+                scanPrefix = '*'
+            } else {
+                if (!endsWith(prefix, separator + '*')) {
+                    scanPrefix = prefix + separator + '*'
                 }
-                node = node.children?.[idx] ?? {} as DatabaseItem
             }
-            if (node != null) {
-                node.children = [] as DatabaseItem[]
+            const { keys, success } = await this.scanKeys(connName, db, scanPrefix)
+            if (!success) {
+                return
             }
 
-            const keys = Object.keys(data)
-            this._updateNodeChildren(connName, db, keys)
+            // remove current keys below prefix
+            this._deleteKeyNodes(connName, db, prefix)
+            this._addKeyNodes(connName, db, keys)
+            this._tidyNodeChildren(this.databases[connName][db])
+        },
+
+        /**
+         * remove key with prefix
+         * @param {string} connName
+         * @param {number} db
+         * @param {string} prefix
+         * @returns {boolean}
+         * @private
+         */
+        _deleteKeyNodes(connName: string, db: number, prefix: string) {
+            const dbs = this.databases[connName]
+            let node = dbs[db]
+            const prefixPart = split(prefix, separator)
+            const partLen = size(prefixPart)
+            for (let i = 0; i < partLen; i++) {
+                let idx = findIndex(node.children, { label: prefixPart[i] })
+                if (idx === -1) {
+                    node = {} as DatabaseItem
+                    break
+                }
+                if (i === partLen - 1) {
+                    // remove last part from parent
+                    node.children?.splice(idx, 1)
+                    return true
+                } else {
+                    node = node.children?.[idx] ?? {} as DatabaseItem
+                }
+            }
+            return false
         },
 
         /**
          * remove keys in db
          * @param {string} connName
          * @param {number} db
-         * @param {Object.<string, {}>[]} keys
+         * @param {string[]} keys
          * @private
          */
-        _updateNodeChildren(connName: string, db: number, keys:string[]) {
-            // find match key node in node list
-            const findNodeByKey = (nodes: DatabaseItem[], key: string) => {
-                const idx = findIndex(nodes, { key })
-                return idx !== -1 ? nodes[idx] : null
-            }
-            // insert child to children list by order
-            const sortedInsertChild = (childrenList: DatabaseItem[], item: DatabaseItem) => {
-                const insertIdx = sortedIndexBy(childrenList, item, 'key')
-                childrenList.splice(insertIdx, 0, item)
-                // childrenList.push(item)
-            }
-            // update all node item's children num
-            const updateChildrenNum = (node: DatabaseItem) => {
-                let count = 0
-                const totalChildren = size(node.children)
-                if (totalChildren > 0) {
-                    for (const elem of node.children! ) {
-                        updateChildrenNum(elem)
-                        count += elem.keys
-                    }
-                } else {
-                    count += 1
-                }
-                node.keys = count
-                // node.children = sortBy(node.children, 'label')
-            }
-
+        _addKeyNodes(connName: string, db: number, keys: string[]) {
             const dbs = this.databases[connName]
             if (dbs[db].children == null) {
                 dbs[db].children = []
             }
-            // 这里不可能为空
-            const keyStruct = dbs[db].children!
-            for (const key in keys) {
+            if (this.nodeMap[`${connName}#${db}`] == null) {
+                this.nodeMap[`${connName}#${db}`] = new Map()
+            }
+            // construct tree node list, the format of item key likes 'server/db#type/key'
+            const nodeMap = this.nodeMap[`${connName}#${db}`]
+            const rootChildren = dbs[db].children
+            let count = 0
+            for (const key of keys) {
                 const keyPart = split(key, separator)
                 // const prefixLen = size(keyPart) - 1
                 const len = size(keyPart)
+                const lastIdx = len - 1
                 let handlePath = ''
-                let ks = keyStruct
+                let children = rootChildren
                 for (let i = 0; i < len; i++) {
                     handlePath += keyPart[i]
-                    if (i !== len - 1) {
+                    if (i !== lastIdx) {
                         // layer
-                        const curKey = `${connName}/db${db}/${handlePath}@${ConnectionType.RedisKey}`
-                        let selectedNode = findNodeByKey(ks, curKey)
+                        const nodeKey = `#${ConnectionType.RedisKey}/${handlePath}`
+                        let selectedNode = nodeMap.get(nodeKey)
                         if (selectedNode == null) {
                             selectedNode = {
-                                key: curKey,
+                                key: `${connName}/db${db}${nodeKey}`,
                                 label: keyPart[i],
                                 name: connName,
                                 db,
                                 keys: 0,
                                 redisKey: handlePath,
                                 type: ConnectionType.RedisKey,
+                                isLeaf: false,
                                 children: [],
                             }
-                            sortedInsertChild(ks, selectedNode)
+                            nodeMap.set(nodeKey, selectedNode)
+                            children?.push(selectedNode)
                         }
-                        ks = selectedNode.children ?? []
+                        children = selectedNode.children
                         handlePath += separator
                     } else {
                         // key
-                        const curKey = `${connName}/db${db}/${handlePath}@${ConnectionType.RedisValue}`
+                        const nodeKey = `#${ConnectionType.RedisValue}/${handlePath}`
                         const selectedNode = {
-                            key: curKey,
+                            key: `${connName}/db${db}${nodeKey}`,
                             label: keyPart[i],
                             name: connName,
                             db,
                             keys: 0,
                             redisKey: handlePath,
                             type: ConnectionType.RedisValue,
+                            isLeaf: true,
                         }
-                        sortedInsertChild(ks, selectedNode)
+                        nodeMap.set(nodeKey, selectedNode)
+                        children?.push(selectedNode)
                     }
                 }
+                console.log('count:', ++count)
             }
-
-            dbs[db].opened = true
-            updateChildrenNum(dbs[db])
         },
 
+        /**
+         *
+         * @param {DatabaseItem[]} nodeList
+         * @private
+         */
+        _sortNodes(nodeList: DatabaseItem[]) {
+            nodeList.sort((a, b) => {
+                return a.key > b.key ? 1 : -1
+            })
+        },
+
+        /**
+         * sort all node item's children and calculate keys count
+         * @param node
+         * @private
+         */
+        _tidyNodeChildren(node: DatabaseItem) {
+            let count = 0
+            const totalChildren = size(node.children)
+            if (totalChildren > 0) {
+                this._sortNodes(node.children!)
+
+                for (const elem of node.children?.values() ?? []) {
+                    this._tidyNodeChildren(elem)
+                    count += elem.keys
+                }
+            } else {
+                count += 1
+            }
+            node.keys = count
+        },
 
         /**
          *
@@ -646,13 +721,13 @@ const useConnectionStore = defineStore('connections', {
                     const treeKey = get(nodeList[j], 'key')
                     const isLast = j >= len - 1
                     const keyType = isLastKeyPart ? ConnectionType.RedisValue : ConnectionType.RedisKey
-                    const currentKey = `${connName}/db${db}/${redisKey}@${keyType}`
-                    if (treeKey > currentKey || isLast) {
+                    const curKey = `${connName}/db${db}#${keyType}/${redisKey}`
+                    if (treeKey > curKey || isLast) {
                         // out of search range, add new item
                         if (isLastKeyPart) {
                             // key not exists, add new one
                             const item: DatabaseItem = {
-                                key: currentKey,
+                                key: curKey,
                                 label: keyPart[i],
                                 name: connName,
                                 db,
@@ -669,7 +744,7 @@ const useConnectionStore = defineStore('connections', {
                         } else {
                             // layer not exists, add new one
                             const item: DatabaseItem = {
-                                key: currentKey,
+                                key: curKey,
                                 label: keyPart[i],
                                 name: connName,
                                 db,
@@ -689,7 +764,7 @@ const useConnectionStore = defineStore('connections', {
                             added = true
                         }
                         break
-                    } else if (treeKey === currentKey) {
+                    } else if (treeKey === curKey) {
                         if (isLastKeyPart) {
                             // same key exists, do nothing
                             console.log('TODO: same key exist, do nothing now, should replace value later')
@@ -735,8 +810,9 @@ const useConnectionStore = defineStore('connections', {
             try {
                 const { data, success, msg } = await SetKeyValue(connName, db, key, keyType, value, ttl)
                 if (success) {
-                    // update tree view data
-                    this._addKey(connName, db, key)
+                    // this._addKey(connName, db, key)
+                    this._addKeyNodes(connName, db, [key])
+                    this._tidyNodeChildren(this.databases[connName][db])
                     return { success }
                 } else {
                     return { success, msg }
@@ -1081,7 +1157,7 @@ const useConnectionStore = defineStore('connections', {
          * @param {string} key
          * @private
          */
-        _removeKey(connName: string, db: number, key: string): void {
+        _deleteKeyNode(connName: string, db: number, key: string): void {
             const dbs = this.databases[connName]
             const dbDetail = get(dbs, db, {})
 
@@ -1089,82 +1165,115 @@ const useConnectionStore = defineStore('connections', {
                 return
             }
 
-            const descendantChain: DatabaseItem[] = [dbDetail as DatabaseItem]
-            const keyPart = split(key, separator)
-            let redisKey = ''
-            const keyLen = size(keyPart)
-            let deleted = false
-            let forceBreak = false
-            for (let i = 0; i < keyLen && !forceBreak; i++) {
-                redisKey += keyPart[i]
-
-                const node = last(descendantChain)!
-                const nodeList = get(node, 'children', []) as DatabaseItem[]
-                const len = size(nodeList)
-                const isLastKeyPart = i === keyLen - 1
-                for (let j = 0; j < len; j++) {
-                    const treeKey = get(nodeList[j], 'key')
-                    const keyType = isLastKeyPart ? ConnectionType.RedisValue : ConnectionType.RedisKey
-                    const currentKey = `${connName}/db${db}/${redisKey}@${keyType}`
-                    if (treeKey > currentKey) {
-                        // out of search range, target not exists
-                        forceBreak = true
-                        break
-                    } else if (treeKey === currentKey) {
-                        if (isLastKeyPart) {
-                            // find target
-                            nodeList.splice(j, 1)
-                            node.keys -= 1
-                            deleted = true
-                            forceBreak = true
-                        } else {
-                            // find into it's children
-                            descendantChain.push(nodeList[j])
-                            redisKey += separator
-                        }
-                        break
-                    }
-                }
-
-                if (forceBreak) {
-                    break
-                }
+            const nodeMap = this.nodeMap[`${connName}#${db}`]
+            if (nodeMap == null) {
+                return
             }
-            // console.log(JSON.stringify(descendantChain))
+            const idx = key.lastIndexOf(separator)
+            let parentNode = null
+            let parentKey = ''
+            if (idx === -1) {
+                // root
+                parentNode = dbDetail
+            } else {
+                parentKey = key.substring(0, idx)
+                parentNode = nodeMap.get(`#${ConnectionType.RedisKey}/${parentKey}`)
+            }
 
-            // update ancestor node's info
-            if (deleted) {
-                const desLen = size(descendantChain)
-                for (let i = desLen - 1; i > 0; i--) {
-                    const children = get(descendantChain[i], 'children', []) as DatabaseItem[]
-                    const parent = descendantChain[i - 1]
-                    if (isEmpty(children)) {
-                        const parentChildren = get(parent, 'children', []) as DatabaseItem[]
-                        const k = get(descendantChain[i], 'key')
-                        remove(parentChildren, (item) => item.key === k)
+            if (parentNode == null || parentNode.children == null) {
+                return
+            }
+
+            // remove children
+            const delIdx = findIndex(parentNode.children, { redisKey: key })
+            if (delIdx !== -1) {
+                const childKeys = parentNode.children[delIdx].keys || 1
+                parentNode.children.splice(delIdx, 1)
+                parentNode.keys = Math.max(parentNode.keys - childKeys, 0)
+            }
+
+            // also remove parent node if no more children
+            while (isEmpty(parentNode.children)) {
+                const idx = parentKey.lastIndexOf(separator)
+                if (idx !== -1) {
+                    parentKey = parentKey.substring(0, idx)
+                    parentNode = nodeMap.get(`#${ConnectionType.RedisKey}/${parentKey}`)
+                    if (parentNode != null) {
+                        parentNode.keys = (parentNode.keys || 1) - 1
+                        parentNode.children = []
                     }
-                    parent.keys -= 1
+                } else {
+                    // reach root, remove from db
+                    // 假设 dbDetail: DatabaseItem | null | undefined
+                    if (!dbDetail || !Array.isArray((dbDetail as DatabaseItem)?.children)) {
+                        // 防御性处理：无效数据直接返回
+                        return;
+                    }
+                    // 查找索引（使用类型安全的 findIndex）
+                    const delIdx = (dbDetail as DatabaseItem)?.children?.findIndex(child => child.redisKey === parentKey);
+                    if (delIdx === -1 || delIdx === undefined) {
+                        // 没找到，不操作
+                        return;
+                    }
+                    // 安全更新 keys（默认值为 1，但通常 keys 应 >=0）
+                    (dbDetail as DatabaseItem).keys = Math.max(0, ((dbDetail as DatabaseItem).keys ?? 1) - 1);
+                    // 删除元素
+                    (dbDetail as DatabaseItem).children?.splice(delIdx, 1);
+                    break
                 }
             }
         },
 
         /**
-         * remove redis key
+         * delete redis key
          * @param {string} connName
          * @param {number} db
          * @param {string} key
          * @returns {Promise<boolean>}
          */
-        async removeKey(connName: string, db: number, key: string): Promise<boolean> {
+        async deleteKey(connName: string, db: number, key: string): Promise<boolean> {
             try {
-                const { data, success, msg } = await RemoveKey(connName, db, key)
+                const { data, success, msg } = await DeleteKey(connName, db, key)
                 if (success) {
                     // update tree view data
-                    this._removeKey(connName, db, key)
+                    this._deleteKeyNode(connName, db, key)
 
                     // set tab content empty
                     const tab = useTabStore()
                     tab.emptyTab(connName)
+                    return true
+                }
+            } finally {
+            }
+            return false
+        },
+
+        /**
+         * delete keys with prefix
+         * @param connName
+         * @param db
+         * @param prefix
+         * @param keys
+         * @returns {Promise<boolean>}
+         */
+        async deleteKeyPrefix(connName: string, db: number, prefix: string) {
+            if (isEmpty(prefix)) {
+                return false
+            }
+            try {
+                const { data, success, msg } = await DeleteKey(connName, db, prefix)
+                if (success) {
+                    // const { deleted: keys = [] } = data
+                    // for (const key of keys) {
+                    //     await this._deleteKeyNode(connName, db, key)
+                    // }
+                    if (endsWith(prefix, '*')) {
+                        prefix = prefix.substring(0, prefix.length - 1)
+                    }
+                    if (endsWith(prefix, separator)) {
+                        prefix = prefix.substring(0, prefix.length - 1)
+                    }
+                    this._deleteKeyNode(connName, db, prefix)
                     return true
                 }
             } finally {
@@ -1184,7 +1293,7 @@ const useConnectionStore = defineStore('connections', {
             const { success = false, msg } = await RenameKey(connName, db, key, newKey)
             if (success) {
                 // delete old key and add new key struct
-                this._removeKey(connName, db, key)
+                this._deleteKeyNode(connName, db, key)
                 this._addKey(connName, db, newKey)
                 return { success: true }
             } else {

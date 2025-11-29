@@ -22,6 +22,11 @@ interface RenameKeyParam {
     key: string
 }
 
+interface DeleteKeyParam {
+    server: string
+    db: number
+    key: string
+}
 
 
 const useDialogStore = defineStore('dialog', {
@@ -56,6 +61,13 @@ const useDialogStore = defineStore('dialog', {
         }  as RenameKeyParam,
 
         renameDialogVisible: false,
+
+        deleteKeyParam: {
+            server: '',
+            db: 0,
+            key: '',
+        } as DeleteKeyParam,
+        deleteKeyDialogVisible: false,
 
         selectTTL: -1,
         ttlDialogVisible: false,
@@ -111,7 +123,15 @@ const useDialogStore = defineStore('dialog', {
         closeRenameKeyDialog() {
             this.renameDialogVisible = false
         },
-
+        openDeleteKeyDialog(server: string, db: number, key: string) {
+            this.deleteKeyParam.server = server
+            this.deleteKeyParam.db = db
+            this.deleteKeyParam.key = key
+            this.deleteKeyDialogVisible = true
+        },
+        closeDeleteKeyDialog() {
+            this.deleteKeyDialogVisible = false
+        },
         openNewKeyDialog(prefix: string, server?: string, db?: number) {
             this.newKeyParam.prefix = prefix
             this.newKeyParam.server = server ?? ''

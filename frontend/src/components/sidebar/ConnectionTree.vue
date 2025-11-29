@@ -218,7 +218,7 @@ const dialog = useDialog()
 const confirmDialog = useConfirmDialog()
 const removeConnection = async (name: string) => {
   confirmDialog.warning(i18n.t('remove_tip', { type: i18n.t('conn_name'), name }), async () => {
-    connectionStore.removeConnection(name).then(({ success, msg }) => {
+    connectionStore.deleteConnection(name).then(({ success, msg }) => {
       if (!success) {
         message.error(msg)
       }
@@ -309,8 +309,9 @@ function findSiblingsAndIndex(
   }
   return [null, null]
 }
+
 // delay save until stop drop after 2 seconds
-const saveSort = debounce(() => connectionStore.saveConnectionSort(), 2000, { trailing: true })
+const saveSort = debounce(connectionStore.saveConnectionSorted, 2000, { trailing: true })
 
 const handleDrop = ({ node, dragNode, dropPosition }: TreeDropInfo) => {
   const [dragNodeSiblings, dragNodeIndex] = findSiblingsAndIndex(dragNode, connectionStore.connections)
@@ -351,7 +352,6 @@ const handleDrop = ({ node, dragNode, dropPosition }: TreeDropInfo) => {
       :cancelable="false"
       :draggable="true"
       :data="connectionStore.connections"
-      :expand-on-click="true"
       :expanded-keys="expandedKeys"
       @update:selected-keys="onUpdateSelectedKeys"
       :node-props="nodeProps"

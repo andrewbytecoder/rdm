@@ -144,9 +144,9 @@ func (c *ConnectionService) RenameGroup(oldName, newName string) (resp types.JSR
 	return
 }
 
-// RemoveGroup remove group
-func (c *ConnectionService) RemoveGroup(name string, includeConnection bool) (resp types.JSResp) {
-	err := c.conns.RemoveGroup(name, includeConnection)
+// DeleteGroup remove group
+func (c *ConnectionService) DeleteGroup(name string, includeConnection bool) (resp types.JSResp) {
+	err := c.conns.DeleteGroup(name, includeConnection)
 	if err != nil {
 		resp.Msg = err.Error()
 		return
@@ -155,9 +155,9 @@ func (c *ConnectionService) RemoveGroup(name string, includeConnection bool) (re
 	return
 }
 
-// RemoveConnection remove connection by name
-func (c *ConnectionService) RemoveConnection(name string) (resp types.JSResp) {
-	err := c.conns.RemoveConnection(name)
+// DeleteConnection remove connection by name
+func (c *ConnectionService) DeleteConnection(name string) (resp types.JSResp) {
+	err := c.conns.DeleteConnection(name)
 	if err != nil {
 		resp.Msg = err.Error()
 		return
@@ -306,38 +306,33 @@ func (c *ConnectionService) parseDBItemInfo(info string) map[string]int {
 
 // OpenDatabase open select database, and list all keys
 // @param path contain connection name and db name
-func (c *ConnectionService) OpenDatabase(connName string, db int) map[string]any {
+func (c *ConnectionService) OpenDatabase(connName string, db int) (resp types.JSResp) {
 	return c.ScanKeys(connName, db, "*")
 }
 
 // ScanKeys scan all keys below prefix
-func (c *ConnectionService) ScanKeys(connName string, db int, prefix string) map[string]any {
-
-	//var keys []string
-	keys := map[string]any{}
+func (c *ConnectionService) ScanKeys(connName string, db int, prefix string) (resp types.JSResp) {
 	rdb, ctx, err := c.getRedisClient(connName, db)
 	if err != nil {
-		runtime.LogDebug(c.ctx, "get redis client fail:"+err.Error())
-		return keys
+		resp.Msg = err.Error()
+		return
 	}
 
-	if !strings.HasSuffix(prefix, "*") {
-		prefix += ":*"
-	}
-
+	var keys []string
+	//keys := map[string]keyItem{}
 	var cursor uint64
 	for {
 		var loadedKey []string
 		loadedKey, cursor, err = rdb.Scan(ctx, cursor, prefix, 10000).Result()
 		if err != nil {
-			runtime.LogDebug(c.ctx, "get redis keys fail:"+err.Error())
-			return keys
+			resp.Msg = err.Error()
+			return
 		}
-		//c.updateDBKey(connName, db, loadedKey)
-		for _, k := range loadedKey {
-			//t, _ := rdb.Type(ctx, k).Result()
-			keys[k] = keyItem{Type: "t"}
-		}
+		keys = append(keys, loadedKey...)
+		//for _, k := range loadedKey {
+		//	//t, _ := rdb.Type(ctx, k).Result()
+		//	keys[k] = keyItem{Type: "t"}
+		//}
 		//keys = append(keys, loadedKey...)
 		// no more loadedKey
 		if cursor == 0 {
@@ -345,7 +340,11 @@ func (c *ConnectionService) ScanKeys(connName string, db int, prefix string) map
 		}
 	}
 
-	return keys
+	resp.Success = true
+	resp.Data = map[string]any{
+		"keys": keys,
+	}
+	return
 }
 
 // GetKeyValue get value by key
@@ -865,23 +864,50 @@ func (c *ConnectionService) SetKeyTTL(connName string, db int, key string, ttl i
 	return
 }
 
-// RemoveKey remove redis key
-func (c *ConnectionService) RemoveKey(connName string, db int, key string) (resp types.JSResp) {
+// DeleteKey remove redis key
+func (c *ConnectionService) DeleteKey(connName string, db int, key string) (resp types.JSResp) {
 	rdb, ctx, err := c.getRedisClient(connName, db)
 	if err != nil {
 		resp.Msg = err.Error()
 		return
 	}
+	var deletedKeys []string
 
-	rmCount, err := rdb.Del(ctx, key).Result()
-	if err != nil {
-		resp.Msg = err.Error()
-		return
+	if strings.HasSuffix(key, "*") {
+		// delete by prefix
+		var cursor uint64
+		for {
+			var loadedKey []string
+			if loadedKey, cursor, err = rdb.Scan(ctx, cursor, key, 10000).Result(); err != nil {
+				resp.Msg = err.Error()
+				return
+			} else {
+				if err = rdb.Del(ctx, loadedKey...).Err(); err != nil {
+					resp.Msg = err.Error()
+					return
+				} else {
+					deletedKeys = append(deletedKeys, loadedKey...)
+				}
+			}
+
+			// no more loadedKey
+			if cursor == 0 {
+				break
+			}
+		}
+	} else {
+		// delete key only
+		_, err = rdb.Del(ctx, key).Result()
+		if err != nil {
+			resp.Msg = err.Error()
+			return
+		}
+		deletedKeys = append(deletedKeys, key)
 	}
 
 	resp.Success = true
 	resp.Data = map[string]any{
-		"effect_count": rmCount,
+		"deleted": deletedKeys,
 	}
 	return
 }

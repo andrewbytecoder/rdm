@@ -14,6 +14,8 @@ import useConnectionStore from '../../stores/connections'
 import { useI18n } from 'vue-i18n'
 import { useConfirmDialog } from '../../utils/confirm_dialog.js'
 
+//  主内容界面
+
 interface TabInfo {
   key: string
   label: string
@@ -59,9 +61,9 @@ const onUpdateValue = (tabIndex: number) => {
   tabStore.switchTab(tabIndex)
 }
 
-const onAddTab = () => {
-  tabStore.newBlankTab()
-}
+// const onAddTab = () => {
+//   tabStore.newBlankTab()
+// }
 
 const i18n = useI18n()
 const confirmDialog = useConfirmDialog()
@@ -81,13 +83,13 @@ const onCloseTab = (tabIndex: number) => {
 
 <template>
   <div class="content-container flex-box-v">
+    <!--        <content-tab :model-value="tab"></content-tab>-->
     <n-tabs
         v-model:value="tabStore.activatedIndex"
         :closable=true
         addable
         size="small"
         type="card"
-        @add="onAddTab"
         @close="onCloseTab"
         @update:value="onUpdateValue"
     >
@@ -95,6 +97,19 @@ const onCloseTab = (tabIndex: number) => {
         <n-ellipsis style="max-width: 150px">{{ t.label }}</n-ellipsis>
       </n-tab>
     </n-tabs>
+    <!--        <n-tabs v-model:value="tabStore.activatedIndex" type="line" @update:value="onUpdateValue" :tabs-padding="0">-->
+    <!--            <n-tab v-for="(t, i) in tab" :key="i" :name="i">-->
+    <!--                <div class="tab-item flex-box-h">-->
+    <!--                    <div class="tab-item-label ellipsis">-->
+    <!--                        {{ t.label }}-->
+    <!--                    </div>-->
+    <!--                    <n-icon class="tab-item-close" color="gray" size="16" @click.stop="onCloseTab(i)">-->
+    <!--                        <Close :round="false" :stroke-width="5" />-->
+    <!--                    </n-icon>-->
+    <!--                </div>-->
+    <!--            </n-tab>-->
+    <!--        </n-tabs>-->
+    <!-- TODO: add loading status -->
     <component
         v-if="tabContent != null && !isEmpty(tabContent.key)"
         :is="valueComponents[tabContent?.type]"
@@ -112,4 +127,24 @@ const onCloseTab = (tabIndex: number) => {
 
 <style lang="scss" scoped>
 @import "content";
+
+//.tab-item {
+//    gap: 5px;
+//    padding: 0 5px 0 10px;
+//    align-items: center;
+//    max-width: 150px;
+//
+//    transition: all var(--transition-duration-fast) var(--transition-function-ease-in-out-bezier);
+//
+//    &-label {
+//        font-size: 15px;
+//        text-align: center;
+//    }
+//
+//    &-close {
+//        &:hover {
+//            background-color: rgb(176, 177, 182, 0.4);
+//        }
+//    }
+//}
 </style>

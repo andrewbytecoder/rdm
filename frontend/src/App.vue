@@ -12,6 +12,8 @@ import plaintext from 'highlight.js/lib/languages/plaintext'
 import AddFieldsDialog from './components/dialogs/AddFieldsDialog.vue'
 import AppContent from "./AppContent.vue";
 import GroupDialog from './components/dialogs/GroupDialog.vue'
+import DeleteKeyDialog from './components/dialogs/DeleteKeyDialog.vue'
+
 
 interface Data {
   asideWith: number
@@ -69,6 +71,7 @@ const themeOverrides = {
         <NewKeyDialog />
         <AddFieldsDialog />
         <RenameKeyDialog />
+        <DeleteKeyDialog />
         <SetTtlDialog />
         <PreferencesDialog />
 

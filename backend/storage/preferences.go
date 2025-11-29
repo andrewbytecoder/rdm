@@ -22,12 +22,12 @@ func NewPreferencesStorage() *PreferencesStorage {
 func (p *PreferencesStorage) DefaultPreferences() map[string]any {
 	return map[string]any{
 		"general": map[string]any{
-			"language":       "en",
-			"font":           "",
-			"font_size":      14,
-			"use_proxy":      false,
-			"use_proxy_http": false,
-			"check_update":   true,
+			"language":           "en",
+			"font":               "",
+			"font_size":          14,
+			"use_sys_proxy":      false,
+			"use_sys_proxy_http": false,
+			"check_update":       true,
 		},
 		"edit": map[string]any{
 			"font":      "",
@@ -42,18 +42,39 @@ func (p *PreferencesStorage) getPreferences() (ret map[string]any) {
 		ret = p.DefaultPreferences()
 		return
 	}
-	if err := yaml.Unmarshal(b, &ret); err != nil {
+	if err = yaml.Unmarshal(b, &ret); err != nil {
 		ret = p.DefaultPreferences()
 		return
 	}
 	return
 }
 
-// GetPreferences Get Preferences from local
-func (p *PreferencesStorage) GetPreferences() (ret map[string]any) {
+func (p *PreferencesStorage) flatPreferences(data map[string]any, prefix string) map[string]any {
+	flattened := make(map[string]any)
+	for key, value := range data {
+		newKey := key
+		if prefix != "" {
+			newKey = prefix + "." + key
+		}
+
+		if nested, ok := value.(map[string]any); ok {
+			nestedFlattened := p.flatPreferences(nested, newKey)
+			for k, v := range nestedFlattened {
+				flattened[k] = v
+			}
+		} else {
+			flattened[newKey] = value
+		}
+	}
+	return flattened
+}
+
+// GetPreferences Get PreferencesStorage from local
+func (p *PreferencesStorage) GetPreferences() map[string]any {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	return p.getPreferences()
+	pref := p.getPreferences()
+	return p.flatPreferences(pref, "")
 }
 
 func (p *PreferencesStorage) setPreferences(pf map[string]any, key string, value any) error {
@@ -114,5 +135,5 @@ func (p *PreferencesStorage) SetPreferencesN(values map[string]any) error {
 func (p *PreferencesStorage) RestoreDefault() map[string]any {
 	pf := p.DefaultPreferences()
 	p.SetPreferencesN(pf)
-	return pf
+	return p.flatPreferences(pf, "")
 }
