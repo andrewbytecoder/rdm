@@ -14,6 +14,7 @@ import Log from '../icons/Log.vue'
 import useConnectionStore from '../../stores/connections'
 import Update from "../icons/Update.vue";
 import About from "../icons/About.vue";
+import { renderIcon } from '../../utils/render_model'
 
 // 类型定义
 type MenuItemKey = 'structure' | 'server' | 'preferences' | 'about' | 'update'
@@ -43,11 +44,6 @@ const width = defineModel<number>('width', { default: 60 })
 // 定义组件发出的事件
 // const emit = defineEmits(['update:value'])
 const iconSize = computed(() => Math.floor(width.value  * 0.4))
-
-// 渲染图标函数
-const renderIcon = (icon: any) => {
-  return () => h(NIcon, null, { default: () => h(icon) })
-}
 
 // 使用连接状态存储
 const connectionStore = useConnectionStore()

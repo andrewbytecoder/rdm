@@ -15,6 +15,7 @@ import Connect from '../icons/Connect.vue'
 import { useI18n } from 'vue-i18n'
 import useTabStore from '../../stores/tab'
 import Edit from '../icons/Edit.vue'
+import { renderIcon } from '../../utils/render_model'
 import { useConfirmDialog } from '../../utils/confirm_dialog.js'
 import {ConnectionItem} from "../../config/dbs";
 // import { TreeOption } from 'naive-ui/lib/tree/src/interface';
@@ -27,7 +28,7 @@ interface ContextMenuParam {
   currentNode: TreeSelectOption  | null
 }
 
-interface ExtendedTreeOption extends TreeSelectOption  {
+interface ExtendedTreeOption extends TreeOption  {
   type: number
   name?: string
   db?: number
@@ -73,14 +74,7 @@ const contextMenuParam = reactive<ContextMenuParam>({
   currentNode: null,
 })
 
-const renderIcon = (icon: any) => {
-  return () => {
-    return h(NIcon, null, {
-      default: () => h(icon),
-    })
-  }
-}
-
+//  这里的函数是留给自己使用的函数，后面的mod会调用，传入的参数也是 ExtendedTreeOption
 const menuOptions: Record<number, Function> = {
   [ConnectionType.Group]: () => [
     {
@@ -94,8 +88,8 @@ const menuOptions: Record<number, Function> = {
       icon: renderIcon(Delete),
     },
   ],
-  [ConnectionType.Server]: ({ name }: DatabaseItem ) => {
-    const connected = connectionStore.isConnected(name)
+  [ConnectionType.Server]: ({ name }: ExtendedTreeOption ) => {
+    const connected = connectionStore.isConnected(name as string)
     if (connected) {
       return [
         {
@@ -196,6 +190,7 @@ const onUpdateSelectedKeys = (keys: string[], option: TreeSelectOption) => {
  */
 const openConnection = async (name: string) => {
   try {
+    console.log('openConnection', name)
     if (!connectionStore.isConnected(name)) {
       openingConnection.value = true
       await connectionStore.openConnection(name, false)
@@ -239,12 +234,12 @@ const removeGroup = async (name: string) => {
 //  todo 双击打开
 const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
   return {
-    onDblclick: async () => {
+    onDblclick()  {
       if (option.type === ConnectionType.Server) {
         openConnection(option.name!).then(() => {})
       }
     },
-    onContextmenu: (e: MouseEvent) => {
+    onContextmenu(e: MouseEvent): void {
       e.preventDefault()
       const mop = menuOptions[option.type]
       if (mop == null) {
@@ -252,7 +247,7 @@ const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
       }
       contextMenuParam.show = false
       nextTick().then(() => {
-        contextMenuParam.options = mop({ connected: connectionStore.isConnected(option.name!) })
+        contextMenuParam.options = mop(option)
         contextMenuParam.currentNode = option
         contextMenuParam.x = e.clientX
         contextMenuParam.y = e.clientY
@@ -313,6 +308,7 @@ function findSiblingsAndIndex(
 // delay save until stop drop after 2 seconds
 const saveSort = debounce(connectionStore.saveConnectionSorted, 2000, { trailing: true })
 
+//  拖动
 const handleDrop = ({ node, dragNode, dropPosition }: TreeDropInfo) => {
   const [dragNodeSiblings, dragNodeIndex] = findSiblingsAndIndex(dragNode, connectionStore.connections)
   if (dragNodeSiblings === null || dragNodeIndex === null) {

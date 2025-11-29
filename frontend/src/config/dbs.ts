@@ -14,7 +14,7 @@ export interface ConnectionItem   {
     connTimeout?: number;
     execTimeout?: number;
     markColor?: string;
-    type?: string;
+    type?: number;
     // -- from Connection
     key: string
     label: string
@@ -42,7 +42,7 @@ export class ConnParam implements ConnectionItem {
     connTimeout?: number;
     execTimeout?: number;
     markColor?: string;
-    type?: string;
+    type?: number;
     // -- from Connection
     key: string
     label: string
@@ -55,7 +55,7 @@ export class ConnParam implements ConnectionItem {
     redisKey?: string
     connections?: ConnectionItem[]
 
-    constructor(name: string, group: string, key:string,label:string, addr?: string, port?: number, username?: string, password?: string, defaultFilter?: string, keySeparator?: string, connTimeout?: number, execTimeout?: number, markColor?: string, type?: string) {
+    constructor(name: string, group: string, key:string,label:string, addr?: string, port?: number, username?: string, password?: string, defaultFilter?: string, keySeparator?: string, connTimeout?: number, execTimeout?: number, markColor?: string, type?: number) {
         this.name = name
         this.group = group
         this.key = key

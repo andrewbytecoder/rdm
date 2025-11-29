@@ -165,7 +165,7 @@ const useConnectionStore = defineStore('connections', {
                         name: conn.name,
                         key: conn.name, group: "",
                         label: conn.name,
-                        type: ConnectionType[ConnectionType.Server]
+                        type: ConnectionType.Server
                     })
                 } else {
                     groups.push(conn.name)
@@ -179,7 +179,7 @@ const useConnectionStore = defineStore('connections', {
                             name: item.name,
                             key: value,
                             label: item.name,
-                            type: ConnectionType[ConnectionType.Server]
+                            type: ConnectionType.Server
                         })
                     }
                     conns.push({
@@ -187,7 +187,7 @@ const useConnectionStore = defineStore('connections', {
                         name: "",
                         key: conn.name,
                         label: conn.name,
-                        type: ConnectionType[ConnectionType.Group],
+                        type: ConnectionType.Group,
                         connections: children
                     })
                 }
@@ -242,12 +242,12 @@ const useConnectionStore = defineStore('connections', {
         getConnection(name: string): ConnectionItem | null {
             const conns = this.connections
             for (let i = 0; i < conns.length; i++) {
-                if (conns[i].type === ConnectionType[ConnectionType.Server] && conns[i].key === name) {
+                if (conns[i].type === ConnectionType.Server && conns[i].key === name) {
                     return conns[i]
-                } else if (conns[i].type === ConnectionType[ConnectionType.Group]) {
+                } else if (conns[i].type === ConnectionType.Group) {
                     const children = conns[i].connections || []
                     for (let j = 0; j < children.length; j++) {
-                        if (children[j].type === ConnectionType[ConnectionType.Server] && conns[i].key === name) {
+                        if (children[j].type === ConnectionType.Server && conns[i].key === name) {
                             return children[j]
                         }
                     }
@@ -282,7 +282,7 @@ const useConnectionStore = defineStore('connections', {
             const mapToList = (conns: ConnectionItem[]):types.Connection[] => {
                 const list: types.Connection[] = []
                 for (const conn of conns) {
-                    if (conn.type === ConnectionType[ConnectionType.Group]) {
+                    if (conn.type === ConnectionType.Group) {
                         const children = mapToList(conn.connections!)
                         list.push({
                             group: "", convertValues(a: any, classs: any, asMap?: boolean): any {
@@ -291,7 +291,7 @@ const useConnectionStore = defineStore('connections', {
                             type: 'group',
                             connections: children
                         })
-                    } else if (conn.type === ConnectionType[ConnectionType.Server]) {
+                    } else if (conn.type === ConnectionType.Server) {
                         list.push({
                             group: "", convertValues(a: any, classs: any, asMap?: boolean): any {
                             },
@@ -313,6 +313,7 @@ const useConnectionStore = defineStore('connections', {
          */
         isConnected(name: string): boolean {
             const dbs = get(this.databases, name, [])
+            console.debug("=========================================================",dbs, name)
             return !isEmpty(dbs)
         },
 

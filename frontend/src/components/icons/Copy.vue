@@ -5,6 +5,7 @@ const props = defineProps({
         default: 3,
     },
 })
+
 </script>
 
 <template>

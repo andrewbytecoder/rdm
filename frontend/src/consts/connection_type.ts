@@ -1,4 +1,4 @@
-export enum ConnectionType {
+export const enum ConnectionType {
     Group = 0,
     Server = 1,
     RedisDB = 2,

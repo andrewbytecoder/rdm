@@ -1,10 +1,5 @@
 <script setup lang="ts">
-const props = defineProps({
-    strokeWidth: {
-        type: [Number, String],
-        default: 3,
-    },
-})
+const strokeWidth = defineModel<number | string>('strokeWidth', { default: 3 })
 </script>
 
 <template>
