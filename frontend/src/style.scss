@@ -81,6 +81,10 @@ body {
     height: 100%;
 }
 
+.text-block {
+  white-space: pre-line;
+}
+
 .content-wrapper {
     background-color: var(--bg-color);
     height: 100%;
@@ -110,4 +114,17 @@ body {
 .context-menu-item {
     min-width: 100px;
     padding-right: 10px;
+}
+
+.nav-pane-container {
+  overflow: hidden;
+  background-color: var(--bg-color);
+
+  .nav-pane-bottom {
+    align-items: center;
+    gap: 8px;
+    padding: 3px 5px 5px 5px;
+    min-height: 35px;
+    border-top: var(--border-color) 1px solid;
+  }
 }

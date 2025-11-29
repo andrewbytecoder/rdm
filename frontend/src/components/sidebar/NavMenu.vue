@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { computed, h, ref, Ref } from 'vue'
 import { NIcon, useThemeVars, MenuOption, DropdownOption } from 'naive-ui'
-import ToggleDb from './icons/ToggleDb.vue'
+import ToggleDb from '../icons/ToggleDb.vue'
 import { useI18n } from 'vue-i18n'
-import ToggleServer from './icons/ToggleServer.vue'
-import IconButton from './common/IconButton.vue'
-import Config from './icons/Config.vue'
-import useDialogStore from '../stores/dialog'
-import Github from './icons/Github.vue'
-import { BrowserOpenURL } from '../../wailsjs/runtime'
-import Log from './icons/Log.vue'
-import useConnectionStore from '../stores/connections.js'
-import Update from "./icons/Update.vue";
-import About from "./icons/About.vue";
+import ToggleServer from '../icons/ToggleServer.vue'
+import IconButton from '../common/IconButton.vue'
+import Help from '../icons/Help.vue'
+import Config from '../icons/Config.vue'
+import useDialogStore from '../../stores/dialog'
+import Github from '../icons/Github.vue'
+import { BrowserOpenURL } from '../../../wailsjs/runtime'
+import Log from '../icons/Log.vue'
+import useConnectionStore from '../../stores/connections'
+import Update from "../icons/Update.vue";
+import About from "../icons/About.vue";
 
 // 类型定义
 type MenuItemKey = 'structure' | 'server' | 'preferences' | 'about' | 'update'
@@ -81,6 +82,11 @@ const preferencesOptions = computed<DropdownOption[]>(() => {
       label: i18n.t('preferences'),
       key: 'preferences',
       icon: renderIcon(Config),
+    },
+    {
+      label: i18n.t('help'),
+      key: 'help',
+      icon: renderIcon(Help),
     },
     {
       label: i18n.t('about'),

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { h, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { h, nextTick, onMounted, reactive, ref } from 'vue'
 import { ConnectionType } from '../../consts/connection_type'
-import { NIcon, useDialog, useMessage, TreeOption } from 'naive-ui'
+import { NIcon, useDialog, useMessage, TreeOption, DropdownOption } from 'naive-ui'
 import Key from '../icons/Key.vue'
 import ToggleDb from '../icons/ToggleDb.vue'
-import { get, indexOf, size } from 'lodash'
+import { indexOf, isEmpty } from 'lodash'
 import { useI18n } from 'vue-i18n'
 import Refresh from '../icons/Refresh.vue'
 import CopyLink from '../icons/CopyLink.vue'
@@ -54,9 +54,14 @@ const contextMenuParam = reactive<ContextMenuParam>({
   currentNode: null,
 })
 
+
+interface MenuOptions {
+  [key: number]: (option: TreeOption) => DropdownOption[]
+}
+
 //  Record<number, Function> 定义一个键值对，key为number，value为Function
-const menuOptions: Record<number, Function> = {
-  [ConnectionType.RedisDB]: (opened: boolean) => {
+const menuOptions: MenuOptions = {
+  [ConnectionType.RedisDB]: ({opened}: TreeOption) => {
     if (opened) {
       return [
         {
@@ -158,11 +163,12 @@ const expandKey = (key: string) => {
 
 const message = useMessage()
 const dialog = useDialog()
-const onUpdateExpanded = (
-    value: string[],
-    option: TreeOption,
-    meta: { node: TreeOption; action: 'expand' | 'collapse' }
-) => {
+
+interface Meta {
+  node?: TreeOption
+  action: 'expand' | 'collapse'
+}
+const onUpdateExpanded = (value: string[], option: TreeOption, meta: Meta) => {
   expandedKeys.value = value
   if (!meta.node) {
     return
@@ -170,28 +176,34 @@ const onUpdateExpanded = (
   // console.log(JSON.stringify(meta))
   switch (meta.action) {
     case 'expand':
-      (meta.node as ExtendedTreeOption).expanded = true
+      meta.node.expanded = true
       break
     case 'collapse':
-      (meta.node as ExtendedTreeOption).expanded = false
+      meta.node.expanded = false
       break
   }
 }
 
-watch(
-    () => selectedKeys,
-    (keys) => {
-      if (size(keys) > 0) {
-        console.log('selected')
+
+const onUpdateSelectedKeys = (keys: string[], options: TreeOption[]) => {
+  if (!isEmpty(options)) {
+    // prevent load duplicate key
+    for (const node of options) {
+      if (node.type === ConnectionType.RedisValue) {
+        const { key, name, db, redisKey } = node
+        if (indexOf(selectedKeys.value, key) === -1 && typeof name === 'string' && typeof db === 'number' && typeof redisKey === 'string') {
+          connectionStore.loadKeyValue(name, db, redisKey)
+        }
+        break
       }
     }
-)
-const onUpdateSelectedKeys = ( keys: string[],
-                               option: TreeOption) => {
+  }
+
   selectedKeys.value = keys
 }
 
-const renderPrefix = ({ option }: { option: ExtendedTreeOption }) => {
+
+const renderPrefix = ({ option }: { option: TreeOption }) => {
   switch (option.type) {
     case ConnectionType.RedisDB:
       return h(
@@ -217,12 +229,9 @@ const renderPrefix = ({ option }: { option: ExtendedTreeOption }) => {
             default: () => h(Key),
           }
       )
-    default:
-      return null
   }
 }
-
-const renderLabel = ({ option }: { option: ExtendedTreeOption }) => {
+const renderLabel = ({ option }: { option: TreeOption }) => {
   switch (option.type) {
     case ConnectionType.RedisDB:
     case ConnectionType.RedisKey:
@@ -230,39 +239,66 @@ const renderLabel = ({ option }: { option: ExtendedTreeOption }) => {
       // case ConnectionType.RedisValue:
       //   return `[${option.keyType}]${option.label}`
   }
-  return option.label
+  return option.label as string
 }
 
-const renderSuffix = ({ option }: { option: ExtendedTreeOption }) => {
+const renderSuffix = ({ option }: { option: TreeOption }) => {
   // return h(NButton,
   //     { text: true, type: 'primary' },
   //     { default: () => h(Key) })
 }
 
-const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
+// const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
+//   return {
+//     onDblclick: async () => {
+//       if (loading.value) {
+//         console.warn('TODO: alert to ignore double click when loading')
+//         return
+//       }
+//       // default handle is expand current node
+//       nextTick().then(() => expandKey(option.key!))
+//     },
+//     onContextmenu(e: MouseEvent) {
+//       e.preventDefault()
+//       const mop = menuOptions[option.type]
+//       if (mop == null) {
+//         return
+//       }
+//       contextMenuParam.show = false
+//       //  在下一帧刷新执行
+//       nextTick().then(() => {
+//         contextMenuParam.options = mop(option)
+//         contextMenuParam.currentNode = option
+//         contextMenuParam.x = e.clientX
+//         contextMenuParam.y = e.clientY
+//         contextMenuParam.show = true
+//         selectedKeys.value = [option.key as string]
+//       })
+//     },
+//     // onMouseover() {
+//     //   console.log('mouse over')
+//     // }
+//   }
+// }
+
+
+const nodeProps = ({ option }: { option: TreeOption }) => {
   return {
-    onClick() {
-      const { key, name, db, type, redisKey } = option
-      if (option.type === ConnectionType.RedisValue) {
-        connectionStore.loadKeyValue(name || "", db || 0, redisKey || "")
-      }
-    },
     onDblclick: async () => {
       if (loading.value) {
         console.warn('TODO: alert to ignore double click when loading')
         return
       }
       // default handle is expand current node
-      nextTick().then(() => expandKey(option.key!))
+      nextTick().then(() => expandKey(option.key as string))
     },
-    onContextmenu(e: MouseEvent) {
+    onContextmenu: (e: MouseEvent) => {
       e.preventDefault()
-      const mop = menuOptions[option.type]
+      const mop = menuOptions[option.type as number]
       if (mop == null) {
         return
       }
       contextMenuParam.show = false
-      //  在下一帧刷新执行
       nextTick().then(() => {
         contextMenuParam.options = mop(option)
         contextMenuParam.currentNode = option
@@ -278,12 +314,16 @@ const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
   }
 }
 
-const onLoadTree = async (node: ExtendedTreeOption) => {
+
+
+const onLoadTree = async (node: TreeOption) => {
   switch (node.type) {
     case ConnectionType.RedisDB:
       loading.value = true
       try {
-        await connectionStore.openDatabase(node.name!, node.db!)
+        if (typeof node.name === 'string' && typeof node.db === 'number') {
+          await connectionStore.openDatabase(node.name, node.db)
+        }
       } catch (e: any) {
         message.error(e.message)
         node.isLeaf = undefined
@@ -297,33 +337,44 @@ const onLoadTree = async (node: ExtendedTreeOption) => {
 const confirmDialog = useConfirmDialog()
 const handleSelectContextMenu = (key: string) => {
   contextMenuParam.show = false
-  const { name, db, key: nodeKey, redisKey } = contextMenuParam.currentNode as ExtendedTreeOption
+
+  if (!contextMenuParam.currentNode) return
+
+  const { name, db, key: nodeKey, redisKey } = contextMenuParam.currentNode
+
+  if (typeof name !== 'string' || typeof db !== 'number' || typeof redisKey !== 'string') return
+
   switch (key) {
       // case 'server_reload':
       // case 'db_reload':
       //     connectionStore.loadKeyValue()
       //     break
     case 'db_open':
-      nextTick().then(() => expandKey(nodeKey!))
+      nextTick().then(() => expandKey(nodeKey as string))
       break
     case 'db_newkey':
     case 'key_newkey':
-      dialogStore.openNewKeyDialog(redisKey!, name!, db!)
+      dialogStore.openNewKeyDialog(redisKey, name, db)
+      break
+    case 'key_reload':
+      connectionStore.scanKeys(name, db, redisKey)
+      break
+    case 'value_reload':
+      connectionStore.loadKeyValue(name, db, redisKey)
       break
     case 'key_remove':
     case 'value_remove':
-      confirmDialog.warning(i18n.t('delete_key_tip', { key: redisKey }), () => {
-        connectionStore.removeKey(name as string, db as number, redisKey as string).then((success) => {
+      confirmDialog.warning(i18n.t('remove_tip', { name: redisKey }), () => {
+        connectionStore.removeKey(name, db, redisKey).then((success) => {
           if (success) {
             message.success(i18n.t('delete_key_succ', { key: redisKey }))
           }
         })
       })
-
       break
     case 'key_copy':
     case 'value_copy':
-      ClipboardSetText(redisKey!)
+      ClipboardSetText(redisKey)
           .then((succ) => {
             if (succ) {
               message.success(i18n.t('copy_succ'))

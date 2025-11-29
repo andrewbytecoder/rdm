@@ -198,11 +198,12 @@ const openConnection = async (name: string) => {
   try {
     if (!connectionStore.isConnected(name)) {
       openingConnection.value = true
-      await connectionStore.openConnection(name)
+      await connectionStore.openConnection(name, false)
     }
     tabStore.upsertTab({
+      blank: false, key: "", name: "", type: "",
       server: name,
-      db: 0,
+      db: 0
     })
   } catch (e: any) {
     message.error(e.message)

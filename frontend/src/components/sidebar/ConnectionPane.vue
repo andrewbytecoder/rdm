@@ -69,15 +69,15 @@ const t = useI18n().t
   </div>
 </template>
 
-<style lang="scss" scoped>
-.nav-pane-container {
-  overflow: hidden;
-  background-color: var(--bg-color);
+<!--<style lang="scss" scoped>-->
+<!--.nav-pane-container {-->
+<!--  overflow: hidden;-->
+<!--  background-color: var(&#45;&#45;bg-color);-->
 
-  .nav-pane-bottom {
-    align-items: center;
-    gap: 5px;
-    padding: 3px 3px 5px 5px;
-  }
-}
-</style>
+<!--  .nav-pane-bottom {-->
+<!--    align-items: center;-->
+<!--    gap: 5px;-->
+<!--    padding: 3px 3px 5px 5px;-->
+<!--  }-->
+<!--}-->
+<!--</style>-->

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, h, reactive, ref, Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ContentToolbar from '../ContentToolbar.vue'
+import ContentToolbar from './ContentToolbar.vue'
 import AddLink from '../icons/AddLink.vue'
 import { NButton, NCode, NIcon, NInput, useMessage, DataTableColumn, DataTableRowKey } from 'naive-ui'
 import { types, types as redisTypes } from '../../consts/support_redis_type.js'
@@ -9,7 +9,9 @@ import EditableTableColumn from '../common/EditableTableColumn.vue'
 import useConnectionStore from '../../stores/connections'
 import useDialogStore from '../../stores/dialog.js'
 import type { PropType } from 'vue'
+import {stringLiteral} from "@babel/types";
 
+// 定义一个Map数据类型
 interface HashValue {
   [key: string]: string
 }
@@ -46,19 +48,17 @@ const filterOption: FilterOption[] = [
 
 const filterType = ref<number>(1)
 
-const props = defineProps({
-  name: String,
-  db: Number,
-  keyPath: String,
-  ttl: {
-    type: Number,
-    default: -1,
-  },
-  value: {
-    type: Object as PropType<HashValue>,
-    default: () => ({}),
-  },
-})
+
+
+interface Prob {
+  name: string
+  db: number
+  keyPath: string
+  value: Record<string, any>
+  ttl: number
+}
+
+const props = defineProps<Prob>()
 
 const connectionStore = useConnectionStore()
 const dialogStore = useDialogStore()

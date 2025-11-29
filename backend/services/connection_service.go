@@ -33,7 +33,7 @@ type connectionItem struct {
 }
 
 type keyItem struct {
-	Type string `json:"t"`
+	Type string `json:"type"`
 }
 
 var connection *ConnectionService
@@ -306,23 +306,32 @@ func (c *ConnectionService) parseDBItemInfo(info string) map[string]int {
 
 // OpenDatabase open select database, and list all keys
 // @param path contain connection name and db name
-func (c *ConnectionService) OpenDatabase(connName string, db int) (resp types.JSResp) {
-	log.Println("open db:" + strconv.Itoa(db))
-	rdb, ctx, err := c.getRedisClient(connName, db)
-	if err != nil {
-		resp.Msg = err.Error()
-		return
-	}
+func (c *ConnectionService) OpenDatabase(connName string, db int) map[string]any {
+	return c.ScanKeys(connName, db, "*")
+}
+
+// ScanKeys scan all keys below prefix
+func (c *ConnectionService) ScanKeys(connName string, db int, prefix string) map[string]any {
 
 	//var keys []string
-	keys := map[string]keyItem{}
+	keys := map[string]any{}
+	rdb, ctx, err := c.getRedisClient(connName, db)
+	if err != nil {
+		runtime.LogDebug(c.ctx, "get redis client fail:"+err.Error())
+		return keys
+	}
+
+	if !strings.HasSuffix(prefix, "*") {
+		prefix += ":*"
+	}
+
 	var cursor uint64
 	for {
 		var loadedKey []string
-		loadedKey, cursor, err = rdb.Scan(ctx, cursor, "*", 10000).Result()
+		loadedKey, cursor, err = rdb.Scan(ctx, cursor, prefix, 10000).Result()
 		if err != nil {
-			resp.Msg = err.Error()
-			return
+			runtime.LogDebug(c.ctx, "get redis keys fail:"+err.Error())
+			return keys
 		}
 		//c.updateDBKey(connName, db, loadedKey)
 		for _, k := range loadedKey {
@@ -336,27 +345,21 @@ func (c *ConnectionService) OpenDatabase(connName string, db int) (resp types.JS
 		}
 	}
 
-	resp.Success = true
-	resp.Data = map[string]any{
-		"keys": keys,
-	}
-	return
+	return keys
 }
 
 // GetKeyValue get value by key
-func (c *ConnectionService) GetKeyValue(connName string, db int, key string) (resp types.JSResp) {
+func (c *ConnectionService) GetKeyValue(connName string, db int, key string) map[string]any {
 	rdb, ctx, err := c.getRedisClient(connName, db)
 	if err != nil {
-		resp.Msg = err.Error()
-		return
+		return map[string]any{}
 	}
 
 	var keyType string
 	var dur time.Duration
 	keyType, err = rdb.Type(ctx, key).Result()
 	if err != nil {
-		resp.Msg = err.Error()
-		return
+		return map[string]any{}
 	}
 
 	var ttl int64
@@ -384,8 +387,7 @@ func (c *ConnectionService) GetKeyValue(connName string, db int, key string) (re
 			var loadedVal []string
 			loadedVal, cursor, err = rdb.HScan(ctx, key, cursor, "*", 10000).Result()
 			if err != nil {
-				resp.Msg = err.Error()
-				return
+				return map[string]any{}
 			}
 			for i := 0; i < len(loadedVal); i += 2 {
 				items[loadedVal[i]] = loadedVal[i+1]
@@ -397,13 +399,15 @@ func (c *ConnectionService) GetKeyValue(connName string, db int, key string) (re
 		value = items
 	case "set":
 		//value, err = rdb.SMembers(ctx, key).Result()
-		items := []string{}
+		var items []string
 		for {
 			var loadedKey []string
 			loadedKey, cursor, err = rdb.SScan(ctx, key, cursor, "*", 10000).Result()
 			if err != nil {
-				resp.Msg = err.Error()
-				return
+				if errors.Is(err, redis.Nil) {
+					break
+				}
+				return map[string]any{}
 			}
 			items = append(items, loadedKey...)
 			if cursor == 0 {
@@ -418,8 +422,7 @@ func (c *ConnectionService) GetKeyValue(connName string, db int, key string) (re
 			var loadedVal []string
 			loadedVal, cursor, err = rdb.ZScan(ctx, key, cursor, "*", 10000).Result()
 			if err != nil {
-				resp.Msg = err.Error()
-				return
+				return map[string]any{}
 			}
 			var score float64
 			for i := 0; i < len(loadedVal); i += 2 {
@@ -437,16 +440,13 @@ func (c *ConnectionService) GetKeyValue(connName string, db int, key string) (re
 		value = items
 	}
 	if err != nil {
-		resp.Msg = err.Error()
-		return
+		return map[string]any{}
 	}
-	resp.Success = true
-	resp.Data = map[string]any{
+	return map[string]any{
 		"type":  keyType,
 		"ttl":   ttl,
 		"value": value,
 	}
-	return
 }
 
 // SetKeyValue set value by key

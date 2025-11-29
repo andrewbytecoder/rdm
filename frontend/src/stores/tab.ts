@@ -6,11 +6,11 @@ export interface TabItem {
     blank: boolean
     title?: string
     icon?: string
-    type?: string
-    value?: any
-    server?: string
+    type: string
+    value?: any  // 类型不同返回的数据类型也可能不同
+    server: string
     db?: number
-    key?: string
+    key: string
     ttl?: number
 }
 
@@ -41,28 +41,21 @@ const useTabStore = defineStore('tab', {
             return this.tabList
         },
 
-        currentTab(): TabItem | null {
+        currentTab(): TabItem {
             return get(this.tabs, this.activatedIndex)
         },
-
-        // newBlankTab(): void {
-        //     this.tabList.push({
-        //         name: Date.now().toString(),
-        //         title: 'new tab',
-        //         blank: true,
-        //     })
-        //     this.activatedIndex = size(this.tabList) - 1
-        // },
-
     },
 
 
     actions: {
         newBlankTab(): void {
             this.tabList.push({
+                key: '',
+                type: '',
+                server: '',
                 name: Date.now().toString(),
                 title: 'new tab',
-                blank: true,
+                blank: true
             })
             this._setActivatedIndex(size(this.tabList) - 1,false)
         },
@@ -84,14 +77,7 @@ const useTabStore = defineStore('tab', {
             }
         },
 
-        upsertTab({ server, db, type, ttl, key, value }: {
-            server: string
-            db: number
-            type?: string
-            ttl?: number
-            key?: string
-            value?: any
-        }): void {
+        upsertTab({ server, db, type, ttl, key, value }: TabItem): void {
             let tabIndex = findIndex(this.tabList, { name: server })
             //  找不到新增
             if (tabIndex === -1) {

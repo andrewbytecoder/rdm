@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import useDialog from '../stores/dialog'
-import Delete from './icons/Delete.vue'
-import Edit from './icons/Edit.vue'
-import Refresh from './icons/Refresh.vue'
-import Timer from './icons/Timer.vue'
-import RedisTypeTag from './common/RedisTypeTag.vue'
-import useConnectionStore from '../stores/connections'
+import useDialog from '../../stores/dialog'
+import Delete from '../icons/Delete.vue'
+import Edit from '../icons/Edit.vue'
+import Refresh from '../icons/Refresh.vue'
+import Timer from '../icons/Timer.vue'
+import RedisTypeTag from '../common/RedisTypeTag.vue'
+import useConnectionStore from '../../stores/connections'
 import { useI18n } from 'vue-i18n'
 import { useMessage } from 'naive-ui'
-import IconButton from './common/IconButton.vue'
+import IconButton from '../common/IconButton.vue'
+import { useConfirmDialog } from '../../utils/confirm_dialog.js'
+
 
 interface Props {
-  server?: string
-  db?: number
-  keyType?: string
-  keyPath?: string
+  server: string
+  db: number
+  keyType: string
+  keyPath: string
   ttl?: number
 }
 
@@ -32,6 +34,17 @@ const onReloadKey = () => {
   if (props.server && props.db !== undefined && props.keyPath) {
     connectionStore.loadKeyValue(props.server, props.db, props.keyPath)
   }
+}
+
+const confirmDialog = useConfirmDialog()
+const onDeleteKey = () => {
+  confirmDialog.warning(i18n.t('remove_tip', { name: props.keyPath }), () => {
+    connectionStore.removeKey(props.server, props.db, props.keyPath).then((success) => {
+      if (success) {
+        message.success(i18n.t('delete_key_succ', { key: props.keyPath }))
+      }
+    })
+  })
 }
 
 const onConfirmDelete = async () => {
@@ -53,7 +66,7 @@ const onConfirmDelete = async () => {
       <n-input v-model:value="props.keyPath">
         <template #suffix>
 <!--          带不带 : 只是是否动态绑定变量，对于后面的 probs 都能取到 -->
-          <icon-button :icon="Refresh"  tTooltip="reload_key" size="18" @click="onReloadKey" />
+          <icon-button :icon="Refresh"  tTooltip="reload" size="18" @click="onReloadKey" />
         </template>
       </n-input>
     </n-input-group>
@@ -94,20 +107,11 @@ const onConfirmDelete = async () => {
     </n-button-group>
     <n-tooltip>
       <template #trigger>
-        <n-popconfirm
-            :negative-text="$t('cancel')"
-            :positive-text="$t('confirm')"
-            @positive-click="onConfirmDelete"
-        >
-          <template #trigger>
-            <n-button>
-              <template #icon>
-                <n-icon :component="Delete" size="18" />
-              </template>
-            </n-button>
+        <n-button>
+          <template #icon>
+            <n-icon :component="Delete" size="18" @click="onDeleteKey" />
           </template>
-          {{ $t('delete_key_tip', { key: props.keyPath }) }}
-        </n-popconfirm>
+        </n-button>
       </template>
       {{ $t('delete_key') }}
     </n-tooltip>

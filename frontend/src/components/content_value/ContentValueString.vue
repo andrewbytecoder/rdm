@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ContentToolbar from '../ContentToolbar.vue'
+import ContentToolbar from './ContentToolbar.vue'
 import Copy from '../icons/Copy.vue'
 import Save from '../icons/Save.vue'
 import { useMessage } from 'naive-ui'
@@ -20,16 +20,16 @@ interface ViewOption {
   label: string
 }
 
-const props = defineProps({
-  name: String,
-  db: Number,
-  keyPath: String,
-  ttl: {
-    type: Number,
-    default: -1,
-  },
-  value: String,
-})
+
+interface Prob {
+  name: string
+  db: number
+  keyPath: string
+  ttl: number
+  value: string
+}
+
+const props = defineProps<Prob>()
 
 const viewOption: ViewOption[] = [
   {

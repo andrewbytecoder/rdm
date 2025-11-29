@@ -7,7 +7,7 @@ import ContentValueString from '../content_value/ContentValueString.vue'
 import ContentValueSet from '../content_value/ContentValueSet.vue'
 import ContentValueZset from '../content_value/ContentValueZSet.vue'
 import { get, isEmpty, map, toUpper } from 'lodash'
-import useTabStore from '../../stores/tab'
+import useTabStore, {TabItem} from '../../stores/tab'
 import type { Component } from 'vue'
 import { useDialog } from 'naive-ui'
 import useConnectionStore from '../../stores/connections'
@@ -17,15 +17,6 @@ import { useConfirmDialog } from '../../utils/confirm_dialog.js'
 interface TabInfo {
   key: string
   label: string
-}
-
-interface TabContent {
-  name: string
-  type: string
-  db?: number
-  keyPath?: string
-  ttl?: number
-  value?: object | any[]
 }
 
 const valueComponents: Record<string, Component> = {
@@ -47,18 +38,20 @@ const tab = computed((): TabInfo[] =>
     }))
 )
 
-const tabContent = computed((): TabContent | null => {
+const tabContent = computed((): TabItem | null => {
   const tab = tabStore.currentTab
   if (tab == null) {
     return null
   }
   return {
+    blank: false,
+    server: "",
     name: tab.name,
     type: toUpper(tab.type || ''),
     db: tab.db,
-    keyPath: tab.key,
+    key: tab.key,
     ttl: tab.ttl,
-    value: tab.value,
+    value: tab.value
   }
 })
 
@@ -103,10 +96,10 @@ const onCloseTab = (tabIndex: number) => {
       </n-tab>
     </n-tabs>
     <component
-        v-if="tabContent != null && !isEmpty(tabContent.keyPath)"
+        v-if="tabContent != null && !isEmpty(tabContent.key)"
         :is="valueComponents[tabContent?.type]"
         :db="tabContent.db"
-        :key-path="tabContent.keyPath"
+        :key-path="tabContent.key"
         :name="tabContent.name"
         :ttl="tabContent.ttl"
         :value="tabContent.value"

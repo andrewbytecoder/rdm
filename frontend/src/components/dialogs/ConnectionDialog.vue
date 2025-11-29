@@ -10,21 +10,6 @@ import useConnectionStore from '../../stores/connections'
 import {types} from "../../../wailsjs/go/models";
 import {ConnectionItem} from '../../config/dbs'
 
-// interface GeneralForm {
-//   group: string
-//   name: string
-//   addr: string
-//   port: number
-//   username: string
-//   password: string
-//   defaultFilter: string
-//   keySeparator: string
-//   connTimeout: number
-//   execTimeout: number
-//   markColor: string
-// }
-
-
 
 interface TestConnectionResponse {
   success?: boolean
@@ -208,7 +193,7 @@ const onClose = () => {
       transform-origin="center"
   >
 <!--    定义多个tabs 通过 tab进行选择-->
-    <n-tabs v-model:value="tab">
+    <n-tabs v-model:value="tab" type="line">
 <!--      第一个tab 选项是 general -->
 <!--     tab 显示什么  name： 选择的标签-->
 <!--      打标签显示是坐对其还是右对齐-->

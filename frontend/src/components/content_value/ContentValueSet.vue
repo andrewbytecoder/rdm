@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, h, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import ContentToolbar from '../ContentToolbar.vue'
+import ContentToolbar from './ContentToolbar.vue'
 import AddLink from '../icons/AddLink.vue'
 import { NButton, NCode, NIcon, NInput, useMessage, DataTableColumn } from 'naive-ui'
 import { size } from 'lodash'
@@ -27,19 +27,15 @@ interface CurrentEditRow {
 
 const i18n = useI18n()
 
-const props = defineProps({
-  name: String,
-  db: Number,
-  keyPath: String,
-  ttl: {
-    type: Number,
-    default: -1,
-  },
-  value: {
-    type: Array as PropType<SetValue>,
-    default: () => [],
-  },
-})
+interface Prob {
+  name: string
+  db: number
+  keyPath: string
+  ttl: number
+  value: SetValue
+}
+
+const props = defineProps<Prob>()
 
 const connectionStore = useConnectionStore()
 const dialogStore = useDialogStore()

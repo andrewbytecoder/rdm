@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import ContentPane from './components/content/ContentPane.vue'
-import DatabasePane from './components/sidebar/DatabasePane.vue'
+import BrowserPane from './components/sidebar/BrowserPane.vue'
 import { computed, nextTick, onMounted, provide, reactive, ref, Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { GetPreferences } from '../wailsjs/go/storage/PreferencesStorage.js'
 import { get } from 'lodash'
 import { useThemeVars } from 'naive-ui'
-import NavMenu from './components/NavMenu.vue'
+import NavMenu from './components/sidebar/NavMenu.vue'
 import ConnectionPane from './components/sidebar/ConnectionPane.vue'
 import ContentServerPane from './components/content/ContentServerPane.vue'
 import useTabStore from './stores/tab.js'
@@ -93,7 +93,7 @@ const dragging = computed<boolean>(() => {
 <!--    nav.menu中点击会修改 tabStore.nav 这里决定界面渲染什么 -->
     <div v-show="tabStore.nav === 'structure'" class="flex-box-h flex-item-expand">
       <div id="app-side" :style="{ width: asideWidthVal }" class="flex-box-h flex-item">
-        <DatabasePane
+        <BrowserPane
             v-for="t in tabStore.tabs"
             v-show="get(tabStore.currentTab, 'name') === t.name"
             :key="t.name"

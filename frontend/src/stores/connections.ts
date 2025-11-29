@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { get, isEmpty, last, map, remove, size, sortedIndexBy, split, uniq } from 'lodash'
+import { findIndex, get, isEmpty, last, map, remove, size, sortedIndexBy, split, uniq } from 'lodash'
 import {
     AddHashField,
     AddListItem,
@@ -18,6 +18,7 @@ import {
     RenameGroup,
     SaveConnection,
     SaveSortedConnection,
+    ScanKeys,
     SetHashValue,
     SetKeyTTL,
     SetKeyValue,
@@ -30,6 +31,7 @@ import { ConnectionType } from '../consts/connection_type.js'
 import useTabStore from './tab.js'
 import {types} from "../../wailsjs/go/models";
 import {ConnectionItem} from '../config/dbs'
+import key from "../components/icons/Key.vue";
 
 const separator = ':'
 
@@ -56,23 +58,13 @@ interface ListConnectionResponse {
     data?: ConnectionGroup[]
 }
 
-interface OpenDatabaseResponse {
-    data?: {
-        keys: string[]
-    }
-    success: boolean
-    msg: string
+
+interface KeyItem {
+    Type: string
 }
 
-interface GetKeyValueResponse {
-    data?: {
-        type: string
-        ttl: number
-        value: any
-    }
-    success: boolean
-    msg: string
-}
+interface OpenDatabaseResponse extends Record<string, KeyItem> {}
+
 
 interface SetHashValueResponse {
     data?: {
@@ -318,12 +310,19 @@ const useConnectionStore = defineStore('connections', {
         /**
          * Open connection
          * @param {string} name
+         * @param reload
          * @returns {Promise<void>}
          */
-        async openConnection(name: string): Promise<void> {
+        async openConnection(name: string, reload: boolean): Promise<void> {
             if (this.isConnected(name)) {
-                return
+                if (!reload) {
+                    return
+                } else {
+                    // reload mode, try close connection first
+                    await CloseConnection(name)
+                }
             }
+
 
             const cdbs = await OpenConnection(name)
             if (cdbs == null || cdbs.length === 0) {
@@ -451,18 +450,93 @@ const useConnectionStore = defineStore('connections', {
          * @returns {Promise<void>}
          */
         async openDatabase(connName: string, db: number): Promise<void> {
-            const { data, success, msg } = await OpenDatabase(connName, db) as OpenDatabaseResponse
-            if (!success) {
-                throw new Error(msg)
-            }
-            const { keys = [] } = data!
+            const data = await OpenDatabase(connName, db) as OpenDatabaseResponse
+            // 使用Objectt能将map类型的数据返回按照key值返回数组数据
+            const keys: string[]   = Object.keys( data)
             if (isEmpty(keys)) {
+                console.log('openDatabase no keys loaded')
                 const dbs = this.databases[connName]
                 dbs[db].children = []
                 dbs[db].opened = true
                 return
             }
+            // append db node to current connection's children
+            this._updateNodeChildren(connName, db, keys)
+        },
 
+        /**
+         * load redis key
+         * @param server
+         * @param db
+         * @param key
+         */
+        async loadKeyValue(server: string, db: number, key: string): Promise<void> {
+            try {
+                const data = await GetKeyValue(server, db, key)
+                if (data) {
+                    const { type, ttl, value } = data!
+                    const tab = useTabStore()
+                    tab.upsertTab({
+                        blank: false, name: "",
+                        server,
+                        db,
+                        type,
+                        ttl,
+                        key,
+                        value
+                    })
+                } else {
+                    console.warn('TODO: handle get key fail')
+                }
+            } finally {
+            }
+        },
+
+        /**
+         * scan keys with prefix
+         * @param {string} connName
+         * @param {number} db
+         * @param {string} prefix
+         * @returns {Promise<void>}
+         */
+        async scanKeys(connName: string, db: number, prefix: string): Promise<void> {
+            const data = await ScanKeys(connName, db, prefix)
+            if (isEmpty( data)) {
+                throw new Error('scanKeys no keys found')
+            }
+            // remove current keys below prefix
+            const prefixPart = split(prefix, separator)
+            const dbs = this.databases[connName]
+            let node = dbs[db]
+            for (const key of prefixPart) {
+                const idx = findIndex(node.children, { label: key })
+                if (idx === -1) {
+                    node = {}  as DatabaseItem
+                    break
+                }
+                node = node.children?.[idx] ?? {} as DatabaseItem
+            }
+            if (node != null) {
+                node.children = [] as DatabaseItem[]
+            }
+
+            const keys = Object.keys(data)
+            this._updateNodeChildren(connName, db, keys)
+        },
+
+        /**
+         * remove keys in db
+         * @param {string} connName
+         * @param {number} db
+         * @param {Object.<string, {}>[]} keys
+         * @private
+         */
+        _updateNodeChildren(connName: string, db: number, keys:string[]) {
+            // find match key node in node list
+            const findNodeByKey = (nodes: DatabaseItem[], key: string) => {
+                const idx = findIndex(nodes, { key })
+                return idx !== -1 ? nodes[idx] : null
+            }
             // insert child to children list by order
             const sortedInsertChild = (childrenList: DatabaseItem[], item: DatabaseItem) => {
                 const insertIdx = sortedIndexBy(childrenList, item, 'key')
@@ -474,7 +548,7 @@ const useConnectionStore = defineStore('connections', {
                 let count = 0
                 const totalChildren = size(node.children)
                 if (totalChildren > 0) {
-                    for (const elem of node.children!) {
+                    for (const elem of node.children! ) {
                         updateChildrenNum(elem)
                         count += elem.keys
                     }
@@ -485,22 +559,27 @@ const useConnectionStore = defineStore('connections', {
                 // node.children = sortBy(node.children, 'label')
             }
 
-            const keyStruct: DatabaseItem[] = []
-            const mark: Record<string, DatabaseItem> = {}
+            const dbs = this.databases[connName]
+            if (dbs[db].children == null) {
+                dbs[db].children = []
+            }
+            // 这里不可能为空
+            const keyStruct = dbs[db].children!
             for (const key in keys) {
                 const keyPart = split(key, separator)
                 // const prefixLen = size(keyPart) - 1
                 const len = size(keyPart)
                 let handlePath = ''
-                let ks: DatabaseItem[] = keyStruct
+                let ks = keyStruct
                 for (let i = 0; i < len; i++) {
                     handlePath += keyPart[i]
                     if (i !== len - 1) {
                         // layer
-                        const treeKey = `${handlePath}@${ConnectionType.RedisKey}`
-                        if (!mark.hasOwnProperty(treeKey)) {
-                            mark[treeKey] = {
-                                key: `${connName}/db${db}/${treeKey}`,
+                        const curKey = `${connName}/db${db}/${handlePath}@${ConnectionType.RedisKey}`
+                        let selectedNode = findNodeByKey(ks, curKey)
+                        if (selectedNode == null) {
+                            selectedNode = {
+                                key: curKey,
                                 label: keyPart[i],
                                 name: connName,
                                 db,
@@ -509,15 +588,15 @@ const useConnectionStore = defineStore('connections', {
                                 type: ConnectionType.RedisKey,
                                 children: [],
                             }
-                            sortedInsertChild(ks, mark[treeKey])
+                            sortedInsertChild(ks, selectedNode)
                         }
-                        ks = mark[treeKey].children!
+                        ks = selectedNode.children ?? []
                         handlePath += separator
                     } else {
                         // key
-                        const treeKey = `${handlePath}@${ConnectionType.RedisValue}`
-                        mark[treeKey] = {
-                            key: `${connName}/db${db}/${treeKey}`,
+                        const curKey = `${connName}/db${db}/${handlePath}@${ConnectionType.RedisValue}`
+                        const selectedNode = {
+                            key: curKey,
                             label: keyPart[i],
                             name: connName,
                             db,
@@ -525,46 +604,15 @@ const useConnectionStore = defineStore('connections', {
                             redisKey: handlePath,
                             type: ConnectionType.RedisValue,
                         }
-                        sortedInsertChild(ks, mark[treeKey])
+                        sortedInsertChild(ks, selectedNode)
                     }
                 }
             }
 
-            // append db node to current connection's children
-            const dbs = this.databases[connName]
-            dbs[db].children = keyStruct
             dbs[db].opened = true
             updateChildrenNum(dbs[db])
         },
 
-
-
-        /**
-         * load redis key
-         * @param server
-         * @param db
-         * @param key
-         */
-        async loadKeyValue(server: string, db: number, key: string): Promise<void> {
-            try {
-                const { data, success, msg } = await GetKeyValue(server, db, key) as GetKeyValueResponse
-                if (success) {
-                    const { type, ttl, value } = data!
-                    const tab = useTabStore()
-                    tab.upsertTab({
-                        server,
-                        db,
-                        type,
-                        ttl,
-                        key,
-                        value,
-                    })
-                } else {
-                    console.warn('TODO: handle get key fail')
-                }
-            } finally {
-            }
-        },
 
         /**
          *
@@ -597,9 +645,8 @@ const useConnectionStore = defineStore('connections', {
                 for (let j = 0; j < len + 1; j++) {
                     const treeKey = get(nodeList[j], 'key')
                     const isLast = j >= len - 1
-                    const currentKey = `${connName}/db${db}/${redisKey}@${
-                        isLastKeyPart ? ConnectionType.RedisValue : ConnectionType.RedisKey
-                    }`
+                    const keyType = isLastKeyPart ? ConnectionType.RedisValue : ConnectionType.RedisKey
+                    const currentKey = `${connName}/db${db}/${redisKey}@${keyType}`
                     if (treeKey > currentKey || isLast) {
                         // out of search range, add new item
                         if (isLastKeyPart) {
@@ -1057,9 +1104,8 @@ const useConnectionStore = defineStore('connections', {
                 const isLastKeyPart = i === keyLen - 1
                 for (let j = 0; j < len; j++) {
                     const treeKey = get(nodeList[j], 'key')
-                    const currentKey = `${connName}/db${db}/${redisKey}@${
-                        isLastKeyPart ? ConnectionType.RedisValue : ConnectionType.RedisKey
-                    }`
+                    const keyType = isLastKeyPart ? ConnectionType.RedisValue : ConnectionType.RedisKey
+                    const currentKey = `${connName}/db${db}/${redisKey}@${keyType}`
                     if (treeKey > currentKey) {
                         // out of search range, target not exists
                         forceBreak = true
