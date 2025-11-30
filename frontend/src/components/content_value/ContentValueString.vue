@@ -9,11 +9,10 @@ import { types } from '../../consts/value_view_type.js'
 import Close from '../icons/Close.vue'
 import Edit from '../icons/Edit.vue'
 import { IsJson } from '../../utils/check_string_format.js'
-import useConnectionStore from '../../stores/connections'
 import { types as redisTypes } from '../../consts/support_redis_type.js'
 import { ClipboardSetText } from '../../../wailsjs/runtime'
 import { toLower } from 'lodash'
-import type { PropType } from 'vue'
+import useConnectionStore from '../../stores/connections'
 
 interface ViewOption {
   value: string
@@ -24,6 +23,7 @@ interface ViewOption {
 interface Prob {
   name: string
   db: number
+  keyType: string
   keyPath: string
   ttl: number
   value: string
@@ -31,7 +31,7 @@ interface Prob {
 
 const props = defineProps<Prob>()
 
-const viewOption: ViewOption[] = [
+const viewOption = [
   {
     value: types.PLAIN_TEXT,
     label: types.PLAIN_TEXT,
@@ -118,6 +118,7 @@ const message = useMessage()
  * Copy value
  */
 const onCopyValue = () => {
+  // 将内容复制到剪贴板
   ClipboardSetText(viewValue.value)
       .then((succ) => {
         if (succ) {
@@ -133,7 +134,9 @@ const editValue = ref<string>('')
 const inEdit = ref<boolean>(false)
 
 const onEditValue = () => {
+  // 将看到的内容复制给编辑框
   editValue.value = viewValue.value
+  // 将编辑模式修改为可编辑
   inEdit.value = true
 }
 
@@ -175,8 +178,9 @@ const onSaveValue = async () => {
 
 <template>
   <div class="content-wrapper flex-box-v">
-    <content-toolbar :db="props.db" :key-path="keyPath" :key-type="keyType" :server="props.name" :ttl="ttl" />
+    <ContentToolbar :db="props.db" :key-path="keyPath" :key-type="keyType" :server="props.name" :ttl="ttl" />
     <div class="tb2 flex-box-h">
+<!--      按照什么格式的文本进行显示 -->
       <n-text>{{ $t('view_as') }}</n-text>
       <n-select v-model:value="viewAs" :options="viewOption" style="width: 200px" />
       <div class="flex-item-expand"></div>
@@ -210,7 +214,7 @@ const onSaveValue = async () => {
       </n-button-group>
     </div>
     <div class="value-wrapper flex-item-expand flex-box-v">
-      <n-scrollbar v-if="!inEdit" class="flex-item-expand">
+      <n-scrollbar v-if=!inEdit class="flex-item-expand">
         <n-code :code="viewValue" :language="viewLanguage" show-line-numbers word-wrap />
       </n-scrollbar>
       <n-input

@@ -10,7 +10,7 @@ import { useI18n } from 'vue-i18n'
 import { useMessage } from 'naive-ui'
 import IconButton from '../common/IconButton.vue'
 import { useConfirmDialog } from '../../utils/confirm_dialog.js'
-
+import {ref} from 'vue'
 
 interface Props {
   server: string
@@ -24,6 +24,8 @@ const props = withDefaults(defineProps<Props>(), {
   keyType: 'STRING',
   ttl: -1,
 })
+
+const border = ref<boolean>(true)
 
 const dialogStore = useDialog()
 const connectionStore = useConnectionStore()
@@ -62,8 +64,9 @@ const onConfirmDelete = async () => {
 <template>
   <div class="content-toolbar flex-box-h">
     <n-input-group>
-      <redis-type-tag :type="props.keyType" size="large"></redis-type-tag>
+      <RedisTypeTag :type="props.keyType" size="large"></RedisTypeTag>
       <n-input v-model:value="props.keyPath">
+<!--        具名插槽，能放入到 n-input的后面-->
         <template #suffix>
 <!--          带不带 : 只是是否动态绑定变量，对于后面的 probs 都能取到 -->
           <icon-button :icon="Refresh"  tTooltip="reload" size="18" @click="onReloadKey" />
@@ -92,7 +95,7 @@ const onConfirmDelete = async () => {
 <!--        {{ $t('rename_key') }}-->
 <!--      </n-button>-->
       <icon-button
-          border
+          :border=border
           :icon="Edit"
           t-tooltip="rename_key"
           size="18"

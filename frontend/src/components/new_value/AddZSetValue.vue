@@ -82,7 +82,7 @@ const onUpdate = (): void => {
         />
         <n-input-number v-model:value="value.score" :placeholder="$t('enter_score')" @update:value="onUpdate" />
       </template>
-      <template #action="{ index, create, remove }">
+      <template #action="{ index, create, remove, move }">
         <icon-button v-if="zset.length > 1" :icon="Delete" size="18" @click="() => remove(index)" />
         <icon-button :icon="Add" size="18" @click="() => create(index)" />
       </template>

@@ -38,6 +38,9 @@ import {
     NTree,
     NSpin,
     NCard,
+    NCode,
+    NTag,
+    NButtonGroup,
 } from 'naive-ui'
 import { createI18n } from 'vue-i18n'
 import App from './App.vue'
@@ -83,6 +86,9 @@ app.component('NInputGroup', NInputGroup)
 app.component('NTree', NTree)
 app.component('NSpin', NSpin)
 app.component('NCard', NCard)
+app.component('NCode', NCode)
+app.component('NTag', NTag)
+app.component('NButtonGroup', NButtonGroup)
 
 
 app.use(

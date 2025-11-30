@@ -41,23 +41,23 @@ const onUpdate = (): void => {
 </script>
 
 <template>
-  <n-form-item :label="$t('element')" required>
-    <n-dynamic-input v-model:value="zset" @create="onCreate" @update:value="onUpdate">
-      <template #default="{ value }">
-        <n-input
-            v-model:value="value.value"
-            :placeholder="$t('enter_member')"
-            type="text"
-            @update:value="onUpdate"
-        />
-        <n-input-number v-model:value="value.score" :placeholder="$t('enter_score')" @update:value="onUpdate" />
-      </template>
-      <template #action="{ index, create, remove }">
-        <icon-button v-if="zset.length > 1" :icon="Delete" size="18" @click="() => remove(index)" />
-        <icon-button :icon="Add" size="18" @click="() => create(index)" />
-      </template>
-    </n-dynamic-input>
-  </n-form-item>
+    <n-form-item :label="$t('element')" required>
+        <n-dynamic-input v-model:value="zset" @create="onCreate" @update:value="onUpdate">
+            <template #default="{ value }">
+                <n-input
+                    v-model:value="value.value"
+                    :placeholder="$t('enter_member')"
+                    type="text"
+                    @update:value="onUpdate"
+                />
+                <n-input-number v-model:value="value.score" :placeholder="$t('enter_score')" @update:value="onUpdate" />
+            </template>
+            <template #action="{ index, create, remove, move }">
+                <icon-button v-if="zset.length > 1" :icon="Delete" size="18" @click="() => remove(index)" />
+                <icon-button :icon="Add" size="18" @click="() => create(index)" />
+            </template>
+        </n-dynamic-input>
+    </n-form-item>
 </template>
 
 <style lang="scss"></style>

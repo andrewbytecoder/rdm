@@ -57,37 +57,42 @@ const onRefresh = () => {
 
 <template>
     <div class="nav-pane-container flex-box-v">
-      <icon-button
-          :icon="AddLink"
-          color="#555"
-          size="20"
-          stroke-width="4"
-          t-tooltip="new_key"
-          @click="onNewKey"
-      />
-      <icon-button
-          :icon="Refresh"
-          color="#555"
-          size="20"
-          stroke-width="4"
-          t-tooltip="reload"
-          @click="onRefresh"
-      />
-      <div class="flex-item-expand"></div>
-      <icon-button
-          :disabled="currentSelect.key == null"
-          :icon="Delete"
-          color="#555"
-          size="20"
-          stroke-width="4"
-          t-tooltip="remove_key"
-          @click="onDeleteKey"
-      />
-      <!--            <n-input placeholder="">-->
-      <!--                <template #prefix>-->
-      <!--                    <n-icon :component="Filter" color="#aaa" size="20" />-->
-      <!--                </template>-->
-      <!--            </n-input>-->
+        <BrowserTree :server="currentName" />
+
+        <!-- bottom function bar -->
+        <div class="nav-pane-bottom flex-box-h">
+            <icon-button
+                :icon="AddLink"
+                color="#555"
+                size="20"
+                stroke-width="4"
+                t-tooltip="new_key"
+                @click="onNewKey"
+            />
+            <icon-button
+                :icon="Refresh"
+                color="#555"
+                size="20"
+                stroke-width="4"
+                t-tooltip="reload"
+                @click="onRefresh"
+            />
+            <div class="flex-item-expand"></div>
+            <icon-button
+                :disabled="currentSelect.key == null"
+                :icon="Delete"
+                color="#555"
+                size="20"
+                stroke-width="4"
+                t-tooltip="remove_key"
+                @click="onDeleteKey"
+            />
+            <!--            <n-input placeholder="">-->
+            <!--                <template #prefix>-->
+            <!--                    <n-icon :component="Filter" color="#aaa" size="20" />-->
+            <!--                </template>-->
+            <!--            </n-input>-->
+        </div>
     </div>
 </template>
 

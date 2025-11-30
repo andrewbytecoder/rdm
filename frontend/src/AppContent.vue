@@ -11,7 +11,6 @@ import ContentServerPane from './components/content/ContentServerPane.vue'
 import useTabStore from './stores/tab.js'
 import usePreferencesStore from './stores/preferences.js'
 
-
 // 定义响应式数据类型
 interface Data {
   navMenuWidth: number
@@ -20,13 +19,14 @@ interface Data {
 }
 
 const themeVars = useThemeVars()
-const tabStore = useTabStore()
 // 界面大小是否可以拖动
 const data: Data = reactive({
-  navMenuWidth: 50,
+  navMenuWidth: 60,
   hoverResize: false,
   resizing: false,
 })
+
+const tabStore = useTabStore()
 
 // 定义偏好设置类型
 interface Preferences {
@@ -40,11 +40,11 @@ interface Preferences {
 const i18n = useI18n()
 
 onMounted(async () => {
-  const prefStore = usePreferencesStore()
-  await prefStore.loadPreferences()
-  await nextTick(() => {
-    i18n.locale.value = get(prefStore.general, 'language', 'en')
-  })
+    const prefStore = usePreferencesStore()
+    await prefStore.loadPreferences()
+    await nextTick(() => {
+        i18n.locale.value = get(prefStore.general, 'language', 'en')
+    })
 })
 
 // TODO: apply font size to all elements
@@ -93,13 +93,12 @@ const dragging = computed<boolean>(() => {
 <!--    nav.menu中点击会修改 tabStore.nav 这里决定界面渲染什么 -->
     <div v-show="tabStore.nav === 'structure'" class="flex-box-h flex-item-expand">
       <div id="app-side" :style="{ width: asideWidthVal }" class="flex-box-h flex-item">
-        <BrowserPane
+        <browser-pane
             v-for="t in tabStore.tabs"
             v-show="get(tabStore.currentTab, 'name') === t.name"
             :key="t.name"
             class="flex-item-expand"
         />
-<!--        允许拖动的侧边栏-->
         <div
             :class="{
                         'resize-divider-hover': data.hoverResize,
@@ -107,11 +106,11 @@ const dragging = computed<boolean>(() => {
                     }"
             class="resize-divider"
             @mousedown="startResize"
-            @mouseout="data.hoverResize = true"
+            @mouseout="data.hoverResize = false"
             @mouseover="data.hoverResize = true"
         />
       </div>
-      <ContentPane class="flex-item-expand" />
+      <content-pane class="flex-item-expand" />
     </div>
 
     <!-- server list page -->
@@ -139,41 +138,41 @@ const dragging = computed<boolean>(() => {
 
 <style lang="scss">
 #app-container {
-  height: 100%;
-  overflow: hidden;
-  border-top: var(--border-color) 1px solid;
-  box-sizing: border-box;
-
-  #app-toolbar {
-    height: 40px;
-    border-bottom: var(--border-color) 1px solid;
-  }
-
-  #app-side {
-    //overflow: hidden;
     height: 100%;
+    overflow: hidden;
+    border-top: var(--border-color) 1px solid;
+    box-sizing: border-box;
 
-    .resize-divider {
-      //height: 100%;
-      width: 2px;
-      border-left-width: 5px;
-      background-color: var(--border-color);
+    #app-toolbar {
+        height: 40px;
+        border-bottom: var(--border-color) 1px solid;
     }
 
-    .resize-divider-hover {
-      width: 3px;
-    }
+    #app-side {
+        //overflow: hidden;
+        height: 100%;
 
-    .resize-divider-drag {
-      //background-color: rgb(0, 105, 218);
-      width: 5px;
-      //background-color: var(--el-color-primary);
-      background-color: v-bind('themeVars.primaryColor');
+        .resize-divider {
+            //height: 100%;
+            width: 2px;
+            border-left-width: 5px;
+            background-color: var(--border-color);
+        }
+
+        .resize-divider-hover {
+            width: 5px;
+        }
+
+        .resize-divider-drag {
+            //background-color: rgb(0, 105, 218);
+            width: 5px;
+            //background-color: var(--el-color-primary);
+            background-color: v-bind('themeVars.primaryColor');
+        }
     }
-  }
 }
 
 .dragging {
-  cursor: col-resize !important;
+    cursor: col-resize !important;
 }
 </style>

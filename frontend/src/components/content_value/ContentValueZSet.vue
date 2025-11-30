@@ -294,42 +294,56 @@ const onUpdateFilter = (filters: Record<string, string>, sourceColumn: DataTable
 </script>
 
 <template>
-  <div class="content-wrapper flex-box-v">
-    <content-toolbar :db="props.db" :key-path="props.keyPath" :key-type="keyType" :server="props.name" :ttl="ttl" />
-    <div class="tb2 flex-box-h">
-      <div class="flex-box-h">
-        <n-input
-            v-model:value="filterValue"
-            :placeholder="$t('search')"
-            clearable
-            @clear="clearFilter"
-            @update:value="onFilterInput"
-        />
-      </div>
-      <div class="flex-item-expand"></div>
-      <n-button plain @click="onAddRow">
-        <template #icon>
-          <n-icon :component="AddLink" size="18" />
-        </template>
-        {{ $t('add_row') }}
-      </n-button>
+    <div class="content-wrapper flex-box-v">
+        <content-toolbar :db="props.db" :key-path="props.keyPath" :key-type="keyType" :server="props.name" :ttl="ttl" />
+        <div class="tb2 flex-box-h">
+            <div class="flex-box-h">
+                <n-input-group>
+                    <n-select
+                        v-model:value="filterType"
+                        :consistent-menu-width="false"
+                        :options="filterOption"
+                        style="width: 120px"
+                        @update:value="onChangeFilterType"
+                    />
+                    <n-tooltip :disabled="filterType !== 2" :delay="500">
+                        <template #trigger>
+                            <n-input
+                                v-model:value="filterValue"
+                                :placeholder="$t('search')"
+                                clearable
+                                @clear="clearFilter"
+                                @update:value="onFilterInput"
+                            />
+                        </template>
+                        <div class="text-block">{{ $t('score_filter_tip') }}</div>
+                    </n-tooltip>
+                </n-input-group>
+            </div>
+            <div class="flex-item-expand"></div>
+            <n-button plain @click="onAddRow">
+                <template #icon>
+                    <n-icon :component="AddLink" size="18" />
+                </template>
+                {{ $t('add_row') }}
+            </n-button>
+        </div>
+        <div class="fill-height flex-box-h" style="user-select: text">
+            <n-data-table
+                :key="(row: TableRow) => row.no"
+                :columns="columns"
+                :data="tableData"
+                :single-column="true"
+                :single-line="false"
+                flex-height
+                max-height="100%"
+                size="small"
+                striped
+                virtual-scroll
+                @update:filters="onUpdateFilter"
+            />
+        </div>
     </div>
-    <div class="fill-height flex-box-h" style="user-select: text">
-      <n-data-table
-          :key="(row: TableRow) => row.no"
-          :columns="columns"
-          :data="tableData"
-          :single-column="true"
-          :single-line="false"
-          flex-height
-          max-height="100%"
-          size="small"
-          striped
-          virtual-scroll
-          @update:filters="onUpdateFilter"
-      />
-    </div>
-  </div>
 </template>
 
 <style lang="scss" scoped></style>

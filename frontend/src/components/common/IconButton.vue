@@ -13,14 +13,18 @@ interface Props {
   size?: number | string
   color?: string
   strokeWidth?: number | string
-  border?: boolean
+  border: boolean
   disabled?: boolean
 }
 
 const emit = defineEmits<{
-  (e: 'click'): void
+  click: [],
+  // (e: 'click'): void
   // click: []  vue3
 }>()
+
+//  v-model 只是用来透传 input和update类型数据的语法糖，不适合click事件
+// const click = defineModel('click')
 
 const props = withDefaults(defineProps<Props>(), {
   tooltip: '',
@@ -43,7 +47,7 @@ const hasTooltip = computed(() => {
 <template>
   <n-tooltip v-if="hasTooltip">
     <template #trigger>
-      <n-button :text="!border" :disabled="disabled" @click="emit('click')">
+      <n-button :text="!props.border" :disabled="props.disabled" @click="emit('click')">
         <n-icon :size="props.size" :color="props.color">
           <component :is="props.icon" :stroke-width="props.strokeWidth" />
         </n-icon>
@@ -51,7 +55,7 @@ const hasTooltip = computed(() => {
     </template>
     {{ props.tTooltip ? $t(props.tTooltip) : props.tooltip }}
   </n-tooltip>
-  <n-button v-else :text="!border" :disabled="disabled" @click="emit('click')">
+  <n-button v-else :text="!props.border" :disabled="props.disabled" @click="emit('click')">
     <n-icon :size="props.size" :color="props.color">
       <component :is="props.icon" :stroke-width="props.strokeWidth" />
     </n-icon>

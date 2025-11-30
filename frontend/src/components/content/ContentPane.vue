@@ -33,6 +33,7 @@ const dialog = useDialog()
 const connectionStore = useConnectionStore()
 const tabStore = useTabStore()
 
+//  将有多少个tabs转换成页面标签
 const tab = computed((): TabInfo[] =>
     map(tabStore.tabs, (item) => ({
       key: item.name,
@@ -77,6 +78,7 @@ const onReloadKey = async () => {
 }
 const i18n = useI18n()
 const confirmDialog = useConfirmDialog()
+//  这里的参数由 value传入的类型是什么来决定
 const onCloseTab = (tabIndex: number) => {
   confirmDialog.warning(i18n.t('close_confirm'), () => {
     const tab = get(tabStore.tabs, tabIndex)
@@ -94,15 +96,16 @@ const onCloseTab = (tabIndex: number) => {
 <template>
   <div class="content-container flex-box-v">
     <!--        <content-tab :model-value="tab"></content-tab>-->
+<!--    value 传入的事啥，关闭的时候传入的参数也是啥-->
     <n-tabs
         v-model:value="tabStore.activatedIndex"
-        :closable=true
-        addable
+        :closable="true"
         size="small"
         type="card"
         @close="onCloseTab"
         @update:value="onUpdateValue"
     >
+<!--      tab的具体内容-->
       <n-tab v-for="(t, i) in tab" :key="i" :name="i">
         <n-ellipsis style="max-width: 150px">{{ t.label }}</n-ellipsis>
       </n-tab>
@@ -121,7 +124,7 @@ const onCloseTab = (tabIndex: number) => {
     </div>
     <component
         v-else
-        :is="valueComponents[tabContent?.type]"
+        :is="valueComponents[tabContent.type]"
         :db="tabContent.db"
         :key-path="tabContent.key"
         :name="tabContent.name"

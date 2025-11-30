@@ -207,19 +207,16 @@ const onClose = () => {
             label-align="right"
             label-placement="left"
         >
-          <n-form-item :label="$t('conn_name')" path="name" required :show-require-mark="true">
+                    <n-form-item :label="$t('conn_name')" path="name" required>
             <n-input v-model:value="generalForm.name" :placeholder="$t('conn_name_tip')" />
           </n-form-item>
           <n-form-item v-if="!isEditMode" :label="$t('conn_group')" required>
             <n-select v-model:value="generalForm.group" :options="groupOptions" />
           </n-form-item>
-          <n-form-item :label="$t('conn_addr')" path="addr" required :show-require-mark="true">
+                    <n-form-item :label="$t('conn_addr')" path="addr" required>
             <n-input v-model:value="generalForm.addr" :placeholder="$t('conn_addr_tip')" />
             <n-text style="width: 40px; text-align: center">:</n-text>
             <n-input-number v-model:value="generalForm.port" :max="65535" :min="1" style="width: 200px" />
-          </n-form-item>
-          <n-form-item :label="$t('conn_usr')" path="username">
-            <n-input v-model="generalForm.username" :placeholder="$t('conn_usr_tip')" />
           </n-form-item>
           <n-form-item :label="$t('conn_pwd')" path="password">
             <n-input
@@ -229,8 +226,11 @@ const onClose = () => {
                 type="password"
             />
           </n-form-item>
-        </n-form>
-      </n-tab-pane>
+                    <n-form-item :label="$t('conn_usr')" path="username">
+                        <n-input v-model="generalForm.username" :placeholder="$t('conn_usr_tip')" />
+                    </n-form-item>
+                </n-form>
+            </n-tab-pane>
 
 <!--       第二个选项是advanced -->
       <n-tab-pane :tab="$t('advanced')" display-directive="show" name="advanced">
@@ -243,23 +243,23 @@ const onClose = () => {
             label-align="right"
             label-placement="left"
         >
-          <n-form-item :label="$t('conn_advn_filter')" path="defaultFilter" :show-require-mark="true">
+                    <n-form-item :label="$t('conn_advn_filter')" path="defaultFilter">
             <n-input v-model:value="generalForm.defaultFilter" :placeholder="$t('conn_advn_filter_tip')" />
           </n-form-item>
-          <n-form-item :label="$t('conn_advn_separator')" path="keySeparator" :show-require-mark="true">
+                    <n-form-item :label="$t('conn_advn_separator')" path="keySeparator">
             <n-input
                 v-model:value="generalForm.keySeparator"
                 :placeholder="$t('conn_advn_separator_tip')"
             />
           </n-form-item>
-          <n-form-item :label="$t('conn_advn_conn_timeout')" path="connTimeout" :show-require-mark="true">
+                    <n-form-item :label="$t('conn_advn_conn_timeout')" path="connTimeout">
             <n-input-number v-model:value="generalForm.connTimeout" :max="999999" :min="1">
               <template #suffix>
                 {{ $t('second') }}
               </template>
             </n-input-number>
           </n-form-item>
-          <n-form-item :label="$t('conn_advn_exec_timeout')" path="execTimeout" :show-require-mark="true">
+                    <n-form-item :label="$t('conn_advn_exec_timeout')" path="execTimeout">
             <n-input-number v-model:value="generalForm.execTimeout" :max="999999" :min="1">
               <template #suffix>
                 {{ $t('second') }}

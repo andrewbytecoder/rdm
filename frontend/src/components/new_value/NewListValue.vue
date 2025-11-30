@@ -26,14 +26,14 @@ const onUpdate = (val: string[]) => {
 </script>
 
 <template>
-  <n-form-item :label="$t('element')" required>
-    <n-dynamic-input v-model:value="list" :placeholder="$t('enter_elem')" @update:value="onUpdate">
-      <template #action="{ index, create, remove }">
-        <icon-button v-if="list.length > 1" :icon="Delete" size="18" @click="() => remove(index)" />
-        <icon-button :icon="Add" size="18" @click="() => create(index)" />
-      </template>
-    </n-dynamic-input>
-  </n-form-item>
+    <n-form-item :label="$t('element')" required>
+        <n-dynamic-input v-model:value="list" :placeholder="$t('enter_elem')" @update:value="onUpdate">
+            <template #action="{ index, create, remove, move }">
+                <icon-button v-if="list.length > 1" :icon="Delete" size="18" @click="() => remove(index)" />
+                <icon-button :icon="Add" size="18" @click="() => create(index)" />
+            </template>
+        </n-dynamic-input>
+    </n-form-item>
 </template>
 
 <style lang="scss" scoped></style>

@@ -71,7 +71,7 @@ const onUpdate = (val: Hash[]) => {
         preset="pair"
         @update:value="onUpdate"
     >
-      <template #action="{ index, create, remove }">
+      <template #action="{ index, create, remove, move }">
         <icon-button v-if="kvList.length > 1" :icon="Delete" size="18" @click="() => remove(index)" />
         <icon-button :icon="Add" size="18" @click="() => create(index)" />
       </template>
