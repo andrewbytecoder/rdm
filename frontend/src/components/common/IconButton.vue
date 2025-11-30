@@ -45,6 +45,7 @@ const hasTooltip = computed(() => {
 </script>
 
 <template>
+<!--  是否鼠标放上去有提示-->
   <n-tooltip v-if="hasTooltip">
     <template #trigger>
       <n-button :text="!props.border" :disabled="props.disabled" @click="emit('click')">

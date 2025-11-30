@@ -58,7 +58,6 @@ const onRefresh = () => {
 <template>
     <div class="nav-pane-container flex-box-v">
         <BrowserTree :server="currentName" />
-
         <!-- bottom function bar -->
         <div class="nav-pane-bottom flex-box-h">
             <icon-button

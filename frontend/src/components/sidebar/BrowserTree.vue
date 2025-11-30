@@ -19,9 +19,9 @@ import { renderIcon } from '../../utils/render_model'
 import { useConfirmDialog } from '../../utils/confirm_dialog.js'
 
 
-interface ContextMenuParam {
+interface DropDownMenuParam {
   show: boolean
-  x: number
+  x: number   // 英语记录鼠标位置在那个地弹出下拉框
   y: number
   options: any[] | null
   currentNode: TreeOption | null
@@ -42,11 +42,11 @@ const i18n = useI18n()
 const loading = ref(false)
 const loadingConnections = ref(false)
 const expandedKeys = ref<string[]>([])
-const selectedKeys = ref<string[]>([])
+const selectedKeys = ref<number[]>([])
 const connectionStore = useConnectionStore()
 const dialogStore = useDialogStore()
 
-const contextMenuParam = reactive<ContextMenuParam>({
+const dropDownMenuParam = reactive<DropDownMenuParam>({
   show: false,
   x: 0,
   y: 0,
@@ -185,7 +185,7 @@ const onUpdateExpanded = (value: string[], option: TreeOption, meta: Meta) => {
 }
 
 
-const onUpdateSelectedKeys = (keys: string[], options: TreeOption[]) => {
+const onUpdateSelectedKeys = (keys: number[], options: TreeOption[]) => {
   if (!isEmpty(options)) {
     // prevent load duplicate key
     for (const node of options) {
@@ -248,38 +248,6 @@ const renderSuffix = ({ option }: { option: TreeOption }) => {
   //     { default: () => h(Key) })
 }
 
-// const nodeProps = ({ option }: { option: ExtendedTreeOption }) => {
-//   return {
-//     onDblclick: async () => {
-//       if (loading.value) {
-//         console.warn('TODO: alert to ignore double click when loading')
-//         return
-//       }
-//       // default handle is expand current node
-//       nextTick().then(() => expandKey(option.key!))
-//     },
-//     onContextmenu(e: MouseEvent) {
-//       e.preventDefault()
-//       const mop = menuOptions[option.type]
-//       if (mop == null) {
-//         return
-//       }
-//       contextMenuParam.show = false
-//       //  在下一帧刷新执行
-//       nextTick().then(() => {
-//         contextMenuParam.options = mop(option)
-//         contextMenuParam.currentNode = option
-//         contextMenuParam.x = e.clientX
-//         contextMenuParam.y = e.clientY
-//         contextMenuParam.show = true
-//         selectedKeys.value = [option.key as string]
-//       })
-//     },
-//     // onMouseover() {
-//     //   console.log('mouse over')
-//     // }
-//   }
-// }
 
 
 const nodeProps = ({ option }: { option: TreeOption }) => {
@@ -292,20 +260,21 @@ const nodeProps = ({ option }: { option: TreeOption }) => {
       // default handle is expand current node
       nextTick().then(() => expandKey(option.key as string))
     },
+    // 右键单击
     onContextmenu: (e: MouseEvent) => {
       e.preventDefault()
       const mop = menuOptions[option.type as number]
       if (mop == null) {
         return
       }
-      contextMenuParam.show = false
+      dropDownMenuParam.show = false
       nextTick().then(() => {
-        contextMenuParam.options = mop(option)
-        contextMenuParam.currentNode = option
-        contextMenuParam.x = e.clientX
-        contextMenuParam.y = e.clientY
-        contextMenuParam.show = true
-        selectedKeys.value = [option.key as string]
+        dropDownMenuParam.options = mop(option)
+        dropDownMenuParam.currentNode = option
+        dropDownMenuParam.x = e.clientX
+        dropDownMenuParam.y = e.clientY
+        dropDownMenuParam.show = true
+        selectedKeys.value = [option.key as number]
       })
     },
     // onMouseover() {
@@ -340,14 +309,12 @@ const onLoadTree = async (node: TreeOption) => {
 
 const confirmDialog = useConfirmDialog()
 const handleSelectContextMenu = (key: string) => {
-  contextMenuParam.show = false
+  dropDownMenuParam.show = false
 
-  if (!contextMenuParam.currentNode) return
+  //  在选择的时候会更新 currentNode
+  if (!dropDownMenuParam.currentNode) return
 
-  const { name, db, key: nodeKey, redisKey } = contextMenuParam.currentNode
-
-  if (typeof name !== 'string' || typeof db !== 'number' || typeof redisKey !== 'string') return
-
+  const { name, db, key: nodeKey, redisKey } = dropDownMenuParam.currentNode
   switch (key) {
       // case 'server_reload':
       // case 'db_reload':
@@ -357,24 +324,24 @@ const handleSelectContextMenu = (key: string) => {
       nextTick().then(() => expandKey(nodeKey as string))
       break
     case 'db_reload':
-      connectionStore.reopenDatabase(name, db)
+      connectionStore.reopenDatabase(name as string, db as number)
       break
     case 'db_newkey':
     case 'key_newkey':
-      dialogStore.openNewKeyDialog(redisKey, name, db)
+      dialogStore.openNewKeyDialog(redisKey as string, name as string, db as number)
       break
     case 'key_reload':
-      connectionStore.loadKeys(name, db, redisKey)
+      connectionStore.loadKeys(name as string, db as  number,   redisKey as string)
       break
     case 'value_reload':
-      connectionStore.loadKeyValue(name, db, redisKey)
+      connectionStore.loadKeyValue(name as string, db as number, redisKey as string)
       break
     case 'key_remove':
-      dialogStore.openDeleteKeyDialog(name, db, redisKey + ':*')
+      dialogStore.openDeleteKeyDialog(name as string, db as number, redisKey + ':*')
       break
     case 'value_remove':
       confirmDialog.warning(i18n.t('remove_tip', { name: redisKey }), () => {
-        connectionStore.deleteKey(name, db, redisKey).then((success) => {
+        connectionStore.deleteKey(name as string, db as number, redisKey as string).then((success) => {
           if (success) {
             message.success(i18n.t('delete_key_succ', { key: redisKey }))
           }
@@ -383,7 +350,7 @@ const handleSelectContextMenu = (key: string) => {
       break
     case 'key_copy':
     case 'value_copy':
-      ClipboardSetText(redisKey)
+      ClipboardSetText(redisKey as string)
           .then((succ) => {
             if (succ) {
               message.success(i18n.t('copy_succ'))
@@ -399,10 +366,11 @@ const handleSelectContextMenu = (key: string) => {
 }
 
 const handleOutsideContextMenu = () => {
-  contextMenuParam.show = false
+  dropDownMenuParam.show = false
 }
 </script>
 
+<!-- 在任何指标下进行 dropdown 点击会出现下来框-->
 <template>
   <n-tree
       :block-line="true"
@@ -423,13 +391,14 @@ const handleOutsideContextMenu = () => {
       class="fill-height"
       virtual-scroll
   />
+<!--  跟在任何元素下，然后使用对应的方式触发即可-->
   <n-dropdown
       :animated="false"
-      :options="contextMenuParam.options"
+      :options="dropDownMenuParam.options"
       :render-label="renderContextLabel"
-      :show="contextMenuParam.show"
-      :x="contextMenuParam.x"
-      :y="contextMenuParam.y"
+      :show="dropDownMenuParam.show"
+      :x="dropDownMenuParam.x"
+      :y="dropDownMenuParam.y"
       placement="bottom-start"
       trigger="manual"
       @clickoutside="handleOutsideContextMenu"
