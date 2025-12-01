@@ -2,18 +2,15 @@
 import type {Component} from 'vue'
 import {computed} from 'vue'
 import {NIcon} from 'naive-ui'
-import {booleanLiteral} from "@babel/types";
-import {types} from "sass";
-import Boolean = types.Boolean;
 
 interface Props {
-  tooltip: string
-  tTooltip: string
+  tooltip?: string
+  tTooltip?: string
   icon?: Component
   size?: number | string
   color?: string
   strokeWidth?: number | string
-  border: boolean
+  border?: boolean
   disabled?: boolean
 }
 

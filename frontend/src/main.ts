@@ -41,6 +41,8 @@ import {
     NCode,
     NTag,
     NButtonGroup,
+    NSkeleton,
+    NLog,
 } from 'naive-ui'
 import { createI18n } from 'vue-i18n'
 import App from './App.vue'
@@ -89,6 +91,8 @@ app.component('NCard', NCard)
 app.component('NCode', NCode)
 app.component('NTag', NTag)
 app.component('NButtonGroup', NButtonGroup)
+app.component('NSkeleton', NSkeleton)
+app.component('NLog', NLog)
 
 
 app.use(

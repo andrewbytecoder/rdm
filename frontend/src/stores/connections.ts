@@ -313,7 +313,6 @@ const useConnectionStore = defineStore('connections', {
          */
         isConnected(name: string): boolean {
             const dbs = get(this.databases, name, [])
-            console.debug("=========================================================",dbs, name)
             return !isEmpty(dbs)
         },
 

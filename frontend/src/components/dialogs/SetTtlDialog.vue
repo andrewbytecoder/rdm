@@ -10,7 +10,6 @@ import {
   NFormItem,
   NInputNumber,
   NButton,
-  // 其他需要的组件...
 } from 'naive-ui'
 interface TtlForm {
   ttl: number
