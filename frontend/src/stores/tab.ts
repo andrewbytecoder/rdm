@@ -61,7 +61,6 @@ const useTabStore = defineStore('tab', {
         },
 
         /**
-         *
          * @param {number} idx
          * @param {boolean} [switchNav]
          * @private
@@ -95,7 +94,7 @@ const useTabStore = defineStore('tab', {
             }
             //  找到了修改原先的值
             this.tabList[tabIndex].blank = false
-            this.tabList[tabIndex].title = `${server}/db${db}`
+            this.tabList[tabIndex].title = server
             this.tabList[tabIndex].server = server
             this.tabList[tabIndex].db = db
             this.tabList[tabIndex].type = type

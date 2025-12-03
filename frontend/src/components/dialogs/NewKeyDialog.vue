@@ -53,6 +53,7 @@ const dbOptions = computed(() =>
       value: parseInt(key),
     }))
 )
+// 表单数据合法验证工具
 const newFormRef = ref<FormInst | null>(null)
 
 const formLabelWidth = '100px'
@@ -100,7 +101,16 @@ watch(
 const connectionStore = useConnectionStore()
 
 const onAdd = async () => {
-  await newFormRef.value?.validate()
+  await newFormRef.value?.validate((errors) => {
+    if (!errors) {
+      message.success('Valid')
+    }
+    else {
+      console.log(errors)
+      message.error('Invalid')
+    }
+  })
+
   try {
     const { server, db, key, type, ttl } = newForm
     let { value } = newForm
@@ -127,8 +137,9 @@ const onClose = () => {
   <n-modal
       v-model:show="dialogStore.newKeyDialogVisible"
       :closable="false"
-      :close-on-esc="false"
+      :close-on-esc="true"
       :mask-closable="false"
+      :animated="true"
       :negative-button-props="{ size: 'medium' }"
       :negative-text="$t('cancel')"
       :positive-button-props="{ size: 'medium' }"

@@ -87,13 +87,13 @@ const dragging = computed<boolean>(() => {
 
 <!--    v-model定义的数据在子组件中能通过 @update:value事件触发值 更新-->
 <!--    导航栏中选择具体的图标，然后更新 nav 根据nav然后触发下面显示面板显示不同的界面-->
-    <nav-menu v-model:value="tabStore.nav" :width="data.navMenuWidth" />
+    <NavMenu v-model:value="tabStore.nav" :width="data.navMenuWidth" />
 <!--    <nav-menu  />-->
-    <!-- structure page-->
+<!-- structure page-->
 <!--    nav.menu中点击会修改 tabStore.nav 这里决定界面渲染什么 -->
     <div v-show="tabStore.nav === 'structure'" class="flex-box-h flex-item-expand">
       <div id="app-side" :style="{ width: asideWidthVal }" class="flex-box-h flex-item">
-        <browser-pane
+        <BrowserPane
             v-for="t in tabStore.tabs"
             v-show="get(tabStore.currentTab, 'name') === t.name"
             :key="t.name"
@@ -110,7 +110,7 @@ const dragging = computed<boolean>(() => {
             @mouseover="data.hoverResize = true"
         />
       </div>
-      <content-pane class="flex-item-expand" />
+      <ContentPane class="flex-item-expand" />
     </div>
 
     <!-- server list page -->

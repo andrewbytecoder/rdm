@@ -95,19 +95,20 @@ const onCloseTab = (tabIndex: number) => {
 
 <template>
   <div class="content-container flex-box-v">
-    <!--        <content-tab :model-value="tab"></content-tab>-->
+<!--        <content-tab :model-value="tab"></content-tab>-->
 <!--    value 传入的事啥，关闭的时候传入的参数也是啥-->
     <n-tabs
         v-model:value="tabStore.activatedIndex"
         :closable="true"
         size="small"
         type="card"
+        :animated="true"
         @close="onCloseTab"
         @update:value="onUpdateValue"
     >
 <!--      tab的具体内容-->
       <n-tab v-for="(t, i) in tab" :key="i" :name="i">
-        <n-ellipsis style="max-width: 150px">{{ t.label }}</n-ellipsis>
+        <n-ellipsis style="max-width: 100px">{{ t.label }}</n-ellipsis>
       </n-tab>
     </n-tabs>
     <!-- TODO: add loading status -->
