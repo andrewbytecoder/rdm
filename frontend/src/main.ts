@@ -43,7 +43,9 @@ import {
     NButtonGroup,
     NSkeleton,
     NLog,
-} from 'naive-ui'
+    NDynamicInput
+} from "naive-ui";
+
 import { createI18n } from 'vue-i18n'
 import App from './App.vue'
 import { lang } from './langs'
@@ -93,6 +95,7 @@ app.component('NTag', NTag)
 app.component('NButtonGroup', NButtonGroup)
 app.component('NSkeleton', NSkeleton)
 app.component('NLog', NLog)
+app.component('NDynamicInput', NDynamicInput)
 
 
 app.use(

@@ -59,6 +59,7 @@ const onClose = () => {
 }
 </script>
 
+<!-- Rename 画笔按钮-->
 <template>
   <n-modal
       v-model:show="dialogStore.renameDialogVisible"

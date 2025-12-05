@@ -17,11 +17,9 @@ interface UpdateOption {
   label: string
 }
 
+const type = defineModel<number>('type')
+
 const props = defineProps({
-  type: {
-    type: Number,
-    default: 0
-  },
   value: {
     type: Array as PropType<Array<string>>,
     default: () => []
@@ -30,7 +28,6 @@ const props = defineProps({
 
 const emit = defineEmits<{
   (e: 'update:value', value: Array<string>): void
-  (e: 'update:type', type: number): void
 }>()
 
 const i18n = useI18n()
@@ -58,8 +55,8 @@ const onUpdate = (val: Hash[]) => {
 </script>
 
 <template>
-  <n-form-item :label="$t('type')">
-    <n-radio-group :value="props.type" @update:value="(val: number) => emit('update:type', val)">
+  <n-form-item label="lslslsl" required>
+    <n-radio-group v-model:value="type" >
       <n-radio-button v-for="(op, i) in updateOption" :key="i" :label="op.label" :value="op.value" />
     </n-radio-group>
   </n-form-item>

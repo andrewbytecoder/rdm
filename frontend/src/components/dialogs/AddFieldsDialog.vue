@@ -39,13 +39,13 @@ interface ZSetValueItem {
 const i18n = useI18n()
 
 const newForm = reactive<NewForm>({
-  server: '',
-  db: 0,
-  key: '',
-  type: '',
-  opType: 0,
-  value: null,
-  reload: true,
+    server: '',
+    db: 0,
+    key: '',
+    type: '',
+    opType: 0,
+    value: null,
+    reload: true,
 })
 
 const formLabelWidth = '60px'
@@ -59,11 +59,11 @@ const addValueComponent: Record<string, Component> = {
 }
 
 const defaultValue: Record<string, any> = {
-  [types.STRING]: '',
-  [types.HASH]: [],
-  [types.LIST]: [],
-  [types.SET]: [],
-  [types.ZSET]: [],
+    [types.STRING]: '',
+    [types.HASH]: [],
+    [types.LIST]: [],
+    [types.SET]: [],
+    [types.ZSET]: [],
 }
 
 /**
@@ -103,7 +103,7 @@ watch(
 const connectionStore = useConnectionStore()
 const message = useMessage()
 
-const onAdd = async () => {
+const confirm = async () => {
   try {
     const { server, db, key, type } = newForm
     let { value } = newForm
@@ -129,7 +129,7 @@ const onAdd = async () => {
           message.error(msg || i18n.t('handle_fail'))
         }
       }
-        break
+      break
 
       case types.HASH:
       {
@@ -225,36 +225,25 @@ const onClose = () => {
   使用预设样式 'dialog'
   preset="dialog"
 
-  设置模态框宽度
-  style="width: 600px"
-
-  设置变换原点
-  transform-origin="center"
-
-  点击确认按钮触发的事件
-  @positive-click="onAdd"
-
-  点击取消按钮触发的事件
-  @negative-click="onClose"
 
 -->
 
   <n-modal
-  v-model:show="dialogStore.addFieldsDialogVisible"
-  :closable="false"
-  :close-on-esc="false"
-  :mask-closable="false"
-  :negative-button-props="{ size: 'medium' }"
-  :negative-text="$t('cancel')"
-  :positive-button-props="{ size: 'medium' }"
-  :positive-text="$t('confirm')"
-  :show-icon="false"
-  :title="title"
-  preset="dialog"
-  style="width: 600px"
-  transform-origin="center"
-  @positive-click="onAdd"
-  @negative-click="onClose"
+      v-model:show="dialogStore.addFieldsDialogVisible"
+      :closable="false"
+      :close-on-esc="false"
+      :mask-closable="false"
+      :negative-button-props="{ size: 'medium' }"
+      :negative-text="$t('cancel')"
+      :positive-button-props="{ size: 'medium' }"
+      :positive-text="$t('confirm')"
+      :show-icon="false"
+      :title="title"
+      preset="dialog"
+      style="width: 600px"
+      transform-origin="center"
+      @positive-click="confirm"
+      @negative-click="onClose"
   >
 
   <!-- 内容区域开始 -->
@@ -274,9 +263,9 @@ const onClose = () => {
         :label-width="formLabelWidth"
         :model="newForm"
         :show-require-mark="false"
-    label-align="right"
-    label-placement="left"
-    style="padding-right: 15px"
+        label-align="right"
+        label-placement="left"
+        style="padding-right: 15px"
     >
 
     <!--
