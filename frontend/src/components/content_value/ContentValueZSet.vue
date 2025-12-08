@@ -9,7 +9,6 @@ import EditableTableColumn from '../common/EditableTableColumn.vue'
 import useConnectionStore from '../../stores/connections'
 import { isEmpty, replace } from 'lodash'
 import useDialogStore from '../../stores/dialog.js'
-import type { PropType } from 'vue'
 
 interface ZSetValue {
   value: string
@@ -277,7 +276,16 @@ const onAddRow = () => {
 const filterValue = ref<string>('')
 
 const onFilterInput = (val: string) => {
-  // valueColumn.filterOptionValue = val
+  switch (filterType.value) {
+    case filterOption.value[0].value:
+      scoreColumn.filterOptionValue = null
+      valueColumn.filterOptionValue = val
+      break
+    case filterOption.value[1].value:
+      scoreColumn.filterOptionValue = null
+      valueColumn.filterOptionValue = val
+      break
+  }
 }
 
 const onChangeFilterType = (type: number) => {
@@ -285,11 +293,23 @@ const onChangeFilterType = (type: number) => {
 }
 
 const clearFilter = () => {
-  // valueColumn.filterOptionValue = null
+  //  reactive类型的数据可自动解引用
+  valueColumn.filterOptionValue = null
+  scoreColumn.filterOptionValue = null
 }
 
-const onUpdateFilter = (filters: Record<string, string>, sourceColumn: DataTableColumn<TableRow>) => {
-  // valueColumn.filterOptionValue = filters[sourceColumn.key as string]
+const onUpdateFilter = (filters: Record<string, string>, sourceColumn: TableColumn) => {
+  switch (filterType.value) {
+    case filterOption.value[0].value:
+      // filter value
+      valueColumn.filterOptionValue = filters[sourceColumn.key]
+      break
+    case filterOption.value[1].value:
+      // filter score
+      scoreColumn.filterOptionValue = filters[sourceColumn.key]
+      break
+  }
+
 }
 </script>
 

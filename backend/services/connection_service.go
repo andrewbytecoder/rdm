@@ -318,6 +318,10 @@ func (c *ConnectionService) ScanKeys(connName string, db int, prefix string) (re
 		return
 	}
 
+	if !strings.HasSuffix(prefix, "*") {
+		prefix += ":*"
+	}
+
 	var keys []string
 	//keys := map[string]keyItem{}
 	var cursor uint64

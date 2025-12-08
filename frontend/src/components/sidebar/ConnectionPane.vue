@@ -81,3 +81,4 @@ const t = useI18n().t
 <!--  }-->
 <!--}-->
 <!--</style>-->
+<style lang="scss" scoped></style>
