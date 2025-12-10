@@ -36,6 +36,16 @@ const props = defineProps({
       },
     ],
   },
+  tabs: {
+    type: Array,
+    default: [
+      {
+        // label: 'tab1',
+        // key: 'key',
+        // bgColor: 'white',
+      },
+    ],
+  },
 })
 
 const connectionStore = useConnectionStore()
@@ -80,7 +90,7 @@ const onCloseTab = (idx: number, key: string) => {
   <!-- TODO: 检查标签是否太多, 左右两边显示左右切换翻页按钮 -->
   <div class="content-tab flex-box-h">
     <div
-        v-for="(item, i) in props.modelValue"
+        v-for="(item, i) in props.tabs"
         :key="item.key"
         :class="{ 'content-tab_selected': selIndex === i }"
         :style="{ backgroundColor: item.bgColor || '' }"
@@ -145,10 +155,10 @@ const onCloseTab = (idx: number, key: string) => {
     }
   }
 
-  &_selected {
-    border-top: #409eff 4px solid !important;
-    background-color: #ffffff;
-    color: #303133;
-  }
+    &_selected {
+        border-top: v-bind('themeVars.primaryColor') 4px solid !important;
+        background-color: #ffffff;
+        color: #303133;
+    }
 }
 </style>

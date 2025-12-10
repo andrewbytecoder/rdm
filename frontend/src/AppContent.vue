@@ -8,8 +8,10 @@ import NavMenu from './components/sidebar/NavMenu.vue'
 import ConnectionPane from './components/sidebar/ConnectionPane.vue'
 import ContentServerPane from './components/content/ContentServerPane.vue'
 import useTabStore from './stores/tab.js'
-import usePreferencesStore from './stores/preferences.js'
-import useConnectionStore from './stores/connections.js'
+import usePreferencesStore from './stores/preferences'
+import useConnectionStore from './stores/connections'
+import ContentLogPane from './components/content/ContentLogPane.vue'
+
 
 // 定义响应式数据类型
 interface Data {
@@ -79,7 +81,7 @@ const dragging = computed<boolean>(() => {
   <div id="app-content-wrapper" :class="{ dragging }" class="flex-box-h" :style="prefStore.generalFont">
     <nav-menu v-model:value="tabStore.nav" :width="data.navMenuWidth" />
     <!-- structure page-->
-    <div v-show="tabStore.nav === 'structure'" class="flex-box-h flex-item-expand">
+    <div v-show="tabStore.nav === 'browser'" class="flex-box-h flex-item-expand">
       <div id="app-side" :style="{ width: asideWidthVal }" class="flex-box-h flex-item">
         <browser-pane
             v-for="t in tabStore.tabs"
@@ -120,7 +122,11 @@ const dragging = computed<boolean>(() => {
     </div>
 
     <!-- log page -->
-    <div v-show="tabStore.nav === 'log'">display log</div>
+    <div v-if="tabStore.nav === 'log'" class="flex-box-h flex-item-expand">
+      <keep-alive>
+        <content-log-pane class="flex-item-expand" />
+      </keep-alive>
+    </div>
   </div>
 </template>
 

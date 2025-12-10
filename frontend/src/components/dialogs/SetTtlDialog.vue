@@ -3,7 +3,6 @@ import { reactive, ref, watch } from 'vue'
 import useDialog from '../../stores/dialog'
 import useTabStore from '../../stores/tab.js'
 import useConnectionStore from '../../stores/connections'
-import { useMessage } from 'naive-ui'
 import type { TabItem } from '../../stores/tab.js'
 import {
   NForm,
@@ -57,8 +56,6 @@ const onClose = () => {
   dialogStore.closeTTLDialog()
 }
 
-const message = useMessage()
-
 const onConfirm = async () => {
   try {
     const tab: TabItem | null = tabStore.currentTab
@@ -75,7 +72,6 @@ const onConfirm = async () => {
       } as UpdateTTLParams)
     }
   } catch (e: any) {
-    message.error(e.message)
   } finally {
     dialogStore.closeTTLDialog()
   }

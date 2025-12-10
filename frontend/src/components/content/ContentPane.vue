@@ -19,7 +19,7 @@ import ContentServerStatus from '../content_value/ContentServerStatus.vue'
 
 const serverInfo = ref({})
 const autoRefresh = ref(false)
-const serverName = computed(() => {
+const serverName = computed(():string => {
   if (tabContent.value != null) {
     return tabContent.value.name
   }

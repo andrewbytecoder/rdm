@@ -9,6 +9,7 @@ import {
     DeleteConnection,
     DeleteGroup,
     DeleteKey,
+    GetCmdHistory,
     GetConnection,
     GetKeyValue,
     ListConnection,
@@ -129,6 +130,13 @@ interface SelectParams {
     type: number
     redisKey: string
 }
+
+export interface HistoryItem {
+    time: string
+    server: string
+    cmd: string
+}
+
 
 const useConnectionStore = defineStore('connections', {
     /**
@@ -1230,6 +1238,26 @@ const useConnectionStore = defineStore('connections', {
                 return { success: true }
             } else {
                 return { success: false, msg }
+            }
+        },
+
+        /**
+         * get command history
+         * @param {number} [pageNo]
+         * @param {number} [pageSize]
+         * @returns {Promise<HistoryItem[]>}
+         */
+        async getCmdHistory(pageNo: number, pageSize: number):Promise<HistoryItem[]> {
+            if (pageNo === undefined || pageSize === undefined) {
+                pageNo = -1
+                pageSize = -1
+            }
+            try {
+                const { success, data = { list: [] } } = await GetCmdHistory(pageNo, pageSize)
+                const { list } = data
+                return list
+            } catch {
+                return []
             }
         },
     },

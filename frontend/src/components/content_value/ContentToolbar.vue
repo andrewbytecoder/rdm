@@ -87,14 +87,8 @@ const onConfirmDelete = async () => {
           </n-button>
         </template>
         TTL
-      </n-tooltip>
-<!--      <n-button @click="dialogStore.openRenameKeyDialog(props.server ?? '', props.db ?? 0, props.keyPath ?? '')">-->
-<!--        <template #icon>-->
-<!--          <n-icon :component="Edit" size="18" />-->
-<!--        </template>-->
-<!--        {{ $t('rename_key') }}-->
-<!--      </n-button>-->
-      <icon-button
+            </n-tooltip>
+            <icon-button
           :border=border
           :icon="Edit"
           t-tooltip="rename_key"

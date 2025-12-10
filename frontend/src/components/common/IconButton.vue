@@ -61,6 +61,4 @@ const hasTooltip = computed(() => {
   </n-button>
 </template>
 
-<style scoped lang="scss">
-
-</style>
+<style lang="scss"></style>

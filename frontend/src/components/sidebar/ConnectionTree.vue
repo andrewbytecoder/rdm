@@ -2,7 +2,7 @@
 import useDialogStore from '../../stores/dialog'
 import { h, nextTick, reactive, ref, watch } from 'vue'
 import useConnectionStore,  { DatabaseItem } from '../../stores/connections'
-import { NIcon, useDialog, useMessage, TreeSelectOption, TreeOption, TreeDropInfo  } from 'naive-ui'
+import { NIcon, useDialog, useMessage, useThemeVars, TreeSelectOption, TreeOption, TreeDropInfo  } from 'naive-ui'
 import { ConnectionType } from '../../consts/connection_type'
 import ToggleFolder from '../icons/ToggleFolder.vue'
 import ToggleServer from '../icons/ToggleServer.vue'
@@ -41,6 +41,7 @@ export interface DropOption {
   dropPosition: 'before' | 'after' | 'inside';
 }
 
+const themeVars = useThemeVars()
 const i18n = useI18n()
 const openingConnection = ref(false)
 const connectionStore = useConnectionStore()
@@ -345,7 +346,7 @@ const handleDrop = ({ node, dragNode, dropPosition }: TreeDropInfo) => {
       :render-label="renderLabel"
       :render-prefix="renderPrefix"
       @drop="handleDrop"
-      :pattern="filterPattern"
+        :pattern="props.filterPattern"
       class="fill-height"
       virtual-scroll
   />

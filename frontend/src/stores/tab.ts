@@ -68,7 +68,7 @@ const useTabStore = defineStore('tab', {
         _setActivatedIndex(idx: number, switchNav: boolean): void {
             this.activatedIndex = idx
             if (switchNav) {
-                this.nav = idx >= 0 ? 'structure' : 'server'
+                this.nav = idx >= 0 ? 'browser' : 'server'
             } else {
                 if (idx < 0) {
                     this.nav = 'server'

@@ -50,6 +50,7 @@ import {
     NGlobalStyle,
     NGi,
     NGrid,
+    NBackTop,
 } from "naive-ui";
 
 
@@ -105,6 +106,7 @@ const naive = create({
         NGlobalStyle,
         NGi,
         NGrid,
+        NBackTop,
     ]
 })
 

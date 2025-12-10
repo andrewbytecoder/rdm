@@ -215,7 +215,7 @@ const onSaveValue = async () => {
       </n-button-group>
     </div>
     <div class="value-wrapper flex-item-expand flex-box-v">
-      <n-scrollbar v-if=!inEdit class="flex-item-expand">
+            <n-scrollbar v-if="!inEdit" class="flex-item-expand">
         <n-code :code="viewValue" :language="viewLanguage" show-line-numbers word-wrap />
       </n-scrollbar>
       <n-input

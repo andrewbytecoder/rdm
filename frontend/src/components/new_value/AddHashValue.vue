@@ -66,7 +66,7 @@ const onUpdate = (val: Array<{ key: string; value: string }>) => {
   </n-form-item>
   <n-form-item :label="$t('element')" required>
     <n-dynamic-input
-        v-model:value="modelValue"
+        v-model:value="kvList"
         :key-placeholder="$t('enter_field')"
         :value-placeholder="$t('enter_value')"
         preset="pair"

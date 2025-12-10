@@ -41,7 +41,7 @@ const backgroundColor = computed(() => {
   <!--  <div class="redis-type-tag flex-box-h" :style="{backgroundColor: backgroundColor}">{{ props.type }}</div>-->
 </template>
 
-<style scoped lang="scss">
+<style lang="scss">
 .redis-type-tag {
   padding: 0 12px;
 }

@@ -17,7 +17,7 @@ import About from "../icons/About.vue";
 import { renderIcon } from '../../utils/render_model'
 
 // 类型定义
-type MenuItemKey = 'structure' | 'server' | 'preferences' | 'about' | 'update'
+type MenuItemKey = 'browser' | 'server' | 'preferences' | 'about' | 'update'
 
 // 使用Naive UI主题变量
 const themeVars = useThemeVars()
@@ -53,8 +53,8 @@ const i18n = useI18n()
 const menuOptions = computed<MenuOption[]>(() => {
   return [
     {
-      label: i18n.t('structure'), // 国际化显示文本，可通过i18n进行自动国际化处理
-      key: 'structure',   // 菜单当行显示标识符
+      label: i18n.t('browser'), // 国际化显示文本，可通过i18n进行自动国际化处理
+      key: 'browser',   // 菜单当行显示标识符
       icon: renderIcon(ToggleDb),
       show: connectionStore.anyConnectionOpened,
     },
@@ -136,6 +136,7 @@ const openGithub = () => {
         v-model:value="value"
         :collapsed="true"
         :collapsed-icon-size="iconSize"
+
         :options="menuOptions"
     />
 <!--  用来撑满中间空白区域-->
@@ -160,8 +161,8 @@ const openGithub = () => {
 
 <style lang="scss">
 #app-nav-menu {
-  //width: 60px;
-  //border-right: v-bind('themeVars.borderColor') solid 1px;
+    height: 100vh;
+    //border-right: v-bind('themeVars.borderColor') solid 1px;
 
   .nav-menu-item {
     align-items: center;
