@@ -16,7 +16,7 @@ import useDialogStore from '../../stores/dialog'
 import { ClipboardSetText } from '../../../wailsjs/runtime'
 import useConnectionStore from '../../stores/connections'
 import { renderIcon } from '../../utils/render_model'
-import { useConfirmDialog } from '../../utils/confirm_dialog.js'
+import { useConfirmDialog } from '../../utils/confirm_dialog'
 import ToggleServer from '../icons/ToggleServer.vue'
 import Unlink from '../icons/Unlink.vue'
 
