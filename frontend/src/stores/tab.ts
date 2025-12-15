@@ -121,7 +121,7 @@ const useTabStore = defineStore('tab', {
         emptyTab(name: string): void {
             const tab = find(this.tabList, { name })
             if (tab != null) {
-                tab.key = null as any
+                tab.key = ''
                 tab.value = null
             }
         },

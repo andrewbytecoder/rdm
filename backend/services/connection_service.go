@@ -184,7 +184,7 @@ func (c *ConnectionService) OpenConnection(name string) ([]types.ConnectionDB, e
 		return nil, err
 	}
 
-	// get total database
+	// get total databases
 	config, err := rdb.ConfigGet(ctx, "databases").Result()
 	if err != nil {
 		runtime.LogDebug(c.ctx, "get redis info fail:"+err.Error())
@@ -348,28 +348,28 @@ func (c *ConnectionService) parseDBItemInfo(info string) map[string]int {
 
 // OpenDatabase open select database, and list all keys
 // @param path contain connection name and db name
-func (c *ConnectionService) OpenDatabase(connName string, db int) (resp types.JSResp) {
-	return c.ScanKeys(connName, db, "*")
+func (c *ConnectionService) OpenDatabase(connName string, db int, match string, keyType string) (resp types.JSResp) {
+	return c.ScanKeys(connName, db, match, keyType)
 }
 
-// ScanKeys scan all keys below prefix
-func (c *ConnectionService) ScanKeys(connName string, db int, prefix string) (resp types.JSResp) {
+// ScanKeys scan all keys below match
+func (c *ConnectionService) ScanKeys(connName string, db int, match, keyType string) (resp types.JSResp) {
 	rdb, ctx, err := c.getRedisClient(connName, db)
 	if err != nil {
 		resp.Msg = err.Error()
 		return
 	}
-
-	if !strings.HasSuffix(prefix, "*") {
-		prefix += ":*"
-	}
-
+	filterType := len(keyType) > 0
 	var keys []string
 	//keys := map[string]keyItem{}
 	var cursor uint64
 	for {
 		var loadedKey []string
-		loadedKey, cursor, err = rdb.Scan(ctx, cursor, prefix, 10000).Result()
+		if filterType {
+			loadedKey, cursor, err = rdb.ScanType(ctx, cursor, match, 10000, keyType).Result()
+		} else {
+			loadedKey, cursor, err = rdb.Scan(ctx, cursor, match, 10000).Result()
+		}
 		if err != nil {
 			resp.Msg = err.Error()
 			return

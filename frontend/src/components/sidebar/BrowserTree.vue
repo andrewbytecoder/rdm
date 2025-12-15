@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed, h, nextTick, onMounted, reactive, ref } from 'vue'
 import { ConnectionType } from '../../consts/connection_type'
-import { NIcon, useDialog, useMessage, TreeOption, DropdownOption } from 'naive-ui'
+import { NIcon, NTag, NSpace, useDialog, useMessage, TreeOption, DropdownOption } from 'naive-ui'
 import Key from '../icons/Key.vue'
 import ToggleDb from '../icons/ToggleDb.vue'
-import { get, indexOf, isEmpty } from 'lodash'
+import { get, indexOf, isEmpty, remove } from 'lodash'
 import { useI18n } from 'vue-i18n'
 import Refresh from '../icons/Refresh.vue'
 import CopyLink from '../icons/CopyLink.vue'
@@ -19,12 +19,37 @@ import { renderIcon } from '../../utils/render_model'
 import { useConfirmDialog } from '../../utils/confirm_dialog'
 import ToggleServer from '../icons/ToggleServer.vue'
 import Unlink from '../icons/Unlink.vue'
+import Filter from '../icons/Filter.vue'
+import Close from '../icons/Close.vue'
+import { typesColor } from '../../consts/support_redis_type.js'
+import {VNode} from "@vue/runtime-core";
 
+// 定义节点类型
+interface TreeNode {
+  key: string
+  label: string
+  type: ConnectionType
+  db?: number
+  name?: string
+  opened?: boolean
+  expanded?: boolean
+  keys?: number
+  isLeaf?: boolean
+  children?: TreeNode[]
+  redisKey?: string
+}
+
+// 定义菜单选项类型
+interface MenuOption {
+  key: string
+  label: string
+  icon?: Function
+  type?: string
+}
 
 interface Props {
   server: string
 }
-
 
 const props = withDefaults(defineProps<Props>(), {
   server: ''
@@ -58,7 +83,7 @@ const selectedKeys = ref<(string)[]>([props.server])
 const connectionStore = useConnectionStore()
 const dialogStore = useDialogStore()
 
-const data = computed(() => {
+const data = computed<TreeNode[]>(() => {
   // 根据传入的server，返回对应的数据
   const dbs = get(connectionStore.databases, props.server, [])
   return [
@@ -75,7 +100,7 @@ const dropDownMenuParam = reactive<DropDownMenuParam>({
   show: false,
   x: 0,
   y: 0,
-  options: null,
+  options: null as DropdownOption[] | null,
   currentNode: null,
 })
 
@@ -113,6 +138,20 @@ const menuOptions: MenuOptions = {
           key: 'db_newkey',
           label: i18n.t('new_key'),
           icon: renderIcon(Add),
+        },
+        {
+          key: 'db_filter',
+          label: i18n.t('filter_key'),
+          icon: renderIcon(Filter),
+        },
+        {
+          type: 'divider',
+          key: 'd1',
+        },
+        {
+          key: 'db_close',
+          label: i18n.t('close_db'),
+          icon: renderIcon(Close),
         },
       ]
     } else {
@@ -291,9 +330,53 @@ const renderLabel = ({ option }: { option: TreeOption }) => {
 }
 
 const renderSuffix = ({ option }: { option: TreeOption }) => {
-  // return h(NButton,
-  //     { text: true, type: 'primary' },
-  //     { default: () => h(Key) })
+  if (option.type === ConnectionType.RedisDB) {
+    const { name: server, db } = option
+    let { match: matchPattern, type: typeFilter } = connectionStore.getKeyFilter(server as string, db as number)
+    const filterNodes: VNode[]  = []
+    if (!isEmpty(typeFilter)) {
+      filterNodes.push(
+          h(
+              NTag,
+              {
+                size: 'small',
+                closable: true,
+                bordered: false,
+                color: { color: typesColor[typeFilter], textColor: 'white' },
+                onClose: () => {
+                  // remove type filter
+                  connectionStore.setKeyFilter(server as string, db as number, matchPattern, '')
+                  connectionStore.reopenDatabase(server as string, db as number)
+                },
+              },
+              { default: () => typeFilter }
+          )
+      )
+    }
+    // match pattern tag
+    if (!isEmpty(matchPattern) && matchPattern !== '*') {
+      filterNodes.push(
+          h(
+              NTag,
+              {
+                bordered: false,
+                closable: true,
+                size: 'small',
+                onClose: () => {
+                  // remove key match pattern
+                  connectionStore.setKeyFilter(server as string, db as number, '*', typeFilter)
+                  connectionStore.reopenDatabase(server as string, db as number)
+                },
+              },
+              { default: () => matchPattern }
+          )
+      )
+    }
+    if (filterNodes.length > 0) {
+      return h(NSpace, { align: 'center', inline: true, size: 2 }, () => filterNodes)
+    }
+  }
+  return null
 }
 
 
@@ -378,9 +461,17 @@ const handleSelectContextMenu = (key: string) => {
     case 'db_reload':
       connectionStore.reopenDatabase(props.server, db as number)
       break
+    case 'db_close':
+      remove(expandedKeys.value, (k) => k === `${props.server}/db${db}`)
+      connectionStore.closeDatabase(props.server, db as number)
+      break
     case 'db_newkey':
     case 'key_newkey':
       dialogStore.openNewKeyDialog(redisKey as string, props.server, db as number)
+      break
+    case 'db_filter':
+      const { match: pattern, type } = connectionStore.getKeyFilter(props.server, db as number)
+      dialogStore.openKeyFilterDialog(props.server, db as number, pattern, type)
       break
     case 'key_reload':
       connectionStore.loadKeys(props.server, db as  number,   redisKey as string)

@@ -25,12 +25,12 @@ interface ContextMenuParam {
   x: number
   y: number
   options: any[] | null
-  currentNode: TreeSelectOption  | null
+  currentNode: ExtendedTreeOption  | null
 }
 
 interface ExtendedTreeOption extends TreeOption  {
   type: number
-  name?: string
+  name: string
   db?: number
   redisKey?: string
 }
@@ -263,11 +263,8 @@ const handleSelectContextMenu = (key: string) => {
       // ask for close relevant connections before edit
       if (connectionStore.isConnected(name as string)) {
         confirmDialog.warning(i18n.t('edit_close_confirm'), () => {
-          connectionStore.closeConnection(name as string).then((success) => {
-            if (success) {
-              dialogStore.openEditDialog(name as string)
-            }
-          })
+          connectionStore.closeConnection(name)
+          dialogStore.openEditDialog(name)
         })
       } else {
         dialogStore.openEditDialog(name as string)
@@ -285,8 +282,9 @@ const handleSelectContextMenu = (key: string) => {
     case 'group_delete':
       removeGroup(label as string)
       break
+    default:
+      console.warn('TODO: handle context menu:' + key)
   }
-  console.warn('TODO: handle context menu:' + key)
 }
 
 function findSiblingsAndIndex(

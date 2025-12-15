@@ -39,6 +39,7 @@ const props = defineProps<Prob>()
 
 const connectionStore = useConnectionStore()
 const dialogStore = useDialogStore()
+
 const keyType = redisTypes.SET
 
 const currentEditRow = ref<CurrentEditRow>({

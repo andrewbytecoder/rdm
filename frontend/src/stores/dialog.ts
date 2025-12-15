@@ -27,6 +27,13 @@ interface DeleteKeyParam {
     key: string
 }
 
+interface KeyFilterParam {
+    server: string
+    db: number
+    type: string
+    pattern: string
+}
+
 
 const useDialogStore = defineStore('dialog', {
     state: () => ({
@@ -43,6 +50,15 @@ const useDialogStore = defineStore('dialog', {
         } as NewKeyParam,
 
         newKeyDialogVisible: false,
+
+        keyFilterParam: {
+            server: '',
+            db: 0,
+            type: '',
+            pattern: '*',
+        } as KeyFilterParam,
+
+        keyFilterDialogVisible: false,
 
         addFieldParam: {
             server: '',
@@ -107,7 +123,28 @@ const useDialogStore = defineStore('dialog', {
         closeNewGroupDialog() {
             this.groupDialogVisible = false
         },
+        /**
+         *
+         * @param {string} server
+         * @param {number} db
+         * @param {string} pattern
+         * @param {string} type
+         */
+        openKeyFilterDialog(server: string, db: number, pattern: string, type: string) {
+            this.keyFilterParam.server = server
+            this.keyFilterParam.db = db
+            this.keyFilterParam.type = type || ''
+            this.keyFilterParam.pattern = pattern || '*'
+            this.keyFilterDialogVisible = true
+        },
+        closeKeyFilterDialog() {
+            this.keyFilterDialogVisible = false
+        },
 
+        /**
+         *
+         * @param {string} name
+         */
         openRenameGroupDialog(name: string) {
             this.editGroup = name
             this.groupDialogVisible = true
@@ -134,6 +171,13 @@ const useDialogStore = defineStore('dialog', {
         closeDeleteKeyDialog() {
             this.deleteKeyDialogVisible = false
         },
+
+        /**
+         *
+         * @param {string} prefix
+         * @param {string} server
+         * @param {number} db
+         */
         openNewKeyDialog(prefix: string, server?: string, db?: number) {
             this.newKeyParam.prefix = prefix
             this.newKeyParam.server = server ?? ''

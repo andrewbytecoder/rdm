@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {computed} from "vue";
-import {types} from "../../consts/support_redis_type";
+import {types, typesColor} from "../../consts/support_redis_type";
 
 interface Props {
   type?: string
@@ -10,20 +10,12 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   type: 'STRING',
-  color: '',
+  color: 'white',
   size: undefined,
 })
 
-const color: Record<string, string> = {
-  [types.STRING]: '#626aef',
-  [types.HASH]: '#576bfa',
-  [types.LIST]: '#34b285',
-  [types.SET]: '#bb7d52',
-  [types.ZSET]: '#d053a5',
-}
-
 const backgroundColor = computed(() => {
-  return color[props.type]
+  return typesColor[props.type]
 })
 
 </script>
@@ -31,9 +23,9 @@ const backgroundColor = computed(() => {
 <template>
   <n-tag
     :bordered="false"
-    :color="{color:backgroundColor, textColor: 'white'}"
+    :color="{color:backgroundColor, textColor: props.color}"
     :size="props.size"
-    class="redis-type-tag"
+    :class="[props.size === 'small' ? 'redis-type-tag-small' : 'redis-type-tag']"
     strong
   >
     {{ props.type }}
@@ -46,5 +38,8 @@ const backgroundColor = computed(() => {
   padding: 0 12px;
 }
 
+.redis-type-tag-small {
+  padding: 0 5px;
+}
 
 </style>

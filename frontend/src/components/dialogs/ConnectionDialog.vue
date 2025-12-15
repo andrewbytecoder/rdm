@@ -58,6 +58,13 @@ const isEditMode = computed((): boolean => {
   return !isEmpty(editName.value)
 })
 
+const closingConnection = computed(() => {
+  if (isEmpty(editName.value)) {
+    return false
+  }
+  return connectionStore.isConnected(editName.value)
+})
+
 const groupOptions = computed(() => {
   const options = map(connectionStore.groups, (group:string) => ({
     value: group,
@@ -180,7 +187,6 @@ const onClose = () => {
 </script>
 
 <template>
-<!--  New Connection dialog 窗口 -->
   <n-modal
       v-model:show="dialogStore.connDialogVisible"
       :closable="false"
@@ -192,121 +198,255 @@ const onClose = () => {
       preset="dialog"
       transform-origin="center"
   >
-<!--    定义多个tabs 通过 tab进行选择-->
-    <n-tabs v-model:value="tab" type="line" animated>
-<!--      第一个tab 选项是 general -->
-<!--     tab 显示什么  name： 选择的标签-->
-<!--      打标签显示是坐对其还是右对齐-->
-      <n-tab-pane :tab="$t('general')" display-directive="show" name="general">
-        <n-form
-            :ref="generalFormRef"
-            :label-width="formLabelWidth"
-            :model="generalForm"
-            :rules="generalFormRules()"
-            :show-require-mark="false"
-            label-align="right"
-            label-placement="left"
-        >
-                    <n-form-item :label="$t('conn_name')" path="name" required>
-            <n-input v-model:value="generalForm.name" :placeholder="$t('conn_name_tip')" />
-          </n-form-item>
-          <n-form-item v-if="!isEditMode" :label="$t('conn_group')" required>
-            <n-select v-model:value="generalForm.group" :options="groupOptions" />
-          </n-form-item>
-                    <n-form-item :label="$t('conn_addr')" path="addr" required>
-            <n-input v-model:value="generalForm.addr" :placeholder="$t('conn_addr_tip')" />
-            <n-text style="width: 40px; text-align: center">:</n-text>
-            <n-input-number v-model:value="generalForm.port" :max="65535" :min="1" style="width: 200px" />
-          </n-form-item>
-          <n-form-item :label="$t('conn_pwd')" path="password">
-            <n-input
-                v-model:value="generalForm.password"
-                :placeholder="$t('conn_pwd_tip')"
-                show-password-on="click"
-                type="password"
-            />
-          </n-form-item>
-                    <n-form-item :label="$t('conn_usr')" path="username">
-                        <n-input v-model="generalForm.username" :placeholder="$t('conn_usr_tip')" />
-                    </n-form-item>
-                </n-form>
-            </n-tab-pane>
+    <n-spin :show="closingConnection">
+      <n-tabs v-model:value="tab" type="line" animated>
+        <n-tab-pane :tab="$t('general')" display-directive="show" name="general">
+          <n-form
+              ref="generalFormRef"
+              :label-width="formLabelWidth"
+              :model="generalForm"
+              :rules="generalFormRules()"
+              :show-require-mark="false"
+              label-align="right"
+              label-placement="left"
+          >
+            <n-form-item :label="$t('conn_name')" path="name" required>
+              <n-input v-model:value="generalForm.name" :placeholder="$t('conn_name_tip')" />
+            </n-form-item>
+            <n-form-item v-if="!isEditMode" :label="$t('conn_group')" required>
+              <n-select v-model:value="generalForm.group" :options="groupOptions" />
+            </n-form-item>
+            <n-form-item :label="$t('conn_addr')" path="addr" required>
+              <n-input v-model:value="generalForm.addr" :placeholder="$t('conn_addr_tip')" />
+              <n-text style="width: 40px; text-align: center">:</n-text>
+              <n-input-number
+                  v-model:value="generalForm.port"
+                  :max="65535"
+                  :min="1"
+                  style="width: 200px"
+              />
+            </n-form-item>
+            <n-form-item :label="$t('conn_pwd')" path="password">
+              <n-input
+                  v-model:value="generalForm.password"
+                  :placeholder="$t('conn_pwd_tip')"
+                  show-password-on="click"
+                  type="password"
+              />
+            </n-form-item>
+            <n-form-item :label="$t('conn_usr')" path="username">
+              <n-input v-model="generalForm.username" :placeholder="$t('conn_usr_tip')" />
+            </n-form-item>
+          </n-form>
+        </n-tab-pane>
 
-<!--       第二个选项是advanced -->
-      <n-tab-pane :tab="$t('advanced')" display-directive="show" name="advanced">
-        <n-form
-            ref="advanceFormRef"
-            :label-width="formLabelWidth"
-            :model="generalForm"
-            :rules="generalFormRules()"
-            :show-require-mark="false"
-            label-align="right"
-            label-placement="left"
-        >
-                    <n-form-item :label="$t('conn_advn_filter')" path="defaultFilter">
-            <n-input v-model:value="generalForm.defaultFilter" :placeholder="$t('conn_advn_filter_tip')" />
-          </n-form-item>
-                    <n-form-item :label="$t('conn_advn_separator')" path="keySeparator">
-            <n-input
-                v-model:value="generalForm.keySeparator"
-                :placeholder="$t('conn_advn_separator_tip')"
-            />
-          </n-form-item>
-                    <n-form-item :label="$t('conn_advn_conn_timeout')" path="connTimeout">
-            <n-input-number v-model:value="generalForm.connTimeout" :max="999999" :min="1">
-              <template #suffix>
-                {{ $t('second') }}
-              </template>
-            </n-input-number>
-          </n-form-item>
-                    <n-form-item :label="$t('conn_advn_exec_timeout')" path="execTimeout">
-            <n-input-number v-model:value="generalForm.execTimeout" :max="999999" :min="1">
-              <template #suffix>
-                {{ $t('second') }}
-              </template>
-            </n-input-number>
-          </n-form-item>
-          <n-form-item :label="$t('conn_advn_mark_color')" path="markColor">
-            <div
-                v-for="color in predefineColors"
-                :key="color"
-                :class="{
-                'color-preset-item_selected': generalForm.markColor === color,
-              }"
-                :style="{ backgroundColor: color }"
-                class="color-preset-item"
-                @click="generalForm.markColor = color"
-            >
-              <n-icon v-if="color === ''" :component="Close" size="24" />
-            </div>
-          </n-form-item>
-        </n-form>
-      </n-tab-pane>
-    </n-tabs>
+        <n-tab-pane :tab="$t('advanced')" display-directive="show" name="advanced">
+          <n-form
+              ref="advanceFormRef"
+              :label-width="formLabelWidth"
+              :model="generalForm"
+              :rules="generalFormRules()"
+              :show-require-mark="false"
+              label-align="right"
+              label-placement="left"
+          >
+            <n-form-item :label="$t('conn_advn_filter')" path="defaultFilter">
+              <n-input
+                  v-model:value="generalForm.defaultFilter"
+                  :placeholder="$t('conn_advn_filter_tip')"
+              />
+            </n-form-item>
+            <n-form-item :label="$t('conn_advn_separator')" path="keySeparator">
+              <n-input
+                  v-model:value="generalForm.keySeparator"
+                  :placeholder="$t('conn_advn_separator_tip')"
+              />
+            </n-form-item>
+            <n-form-item :label="$t('conn_advn_conn_timeout')" path="connTimeout">
+              <n-input-number v-model:value="generalForm.connTimeout" :max="999999" :min="1">
+                <template #suffix>
+                  {{ $t('second') }}
+                </template>
+              </n-input-number>
+            </n-form-item>
+            <n-form-item :label="$t('conn_advn_exec_timeout')" path="execTimeout">
+              <n-input-number v-model:value="generalForm.execTimeout" :max="999999" :min="1">
+                <template #suffix>
+                  {{ $t('second') }}
+                </template>
+              </n-input-number>
+            </n-form-item>
+            <n-form-item :label="$t('conn_advn_mark_color')" path="markColor">
+              <div
+                  v-for="color in predefineColors"
+                  :key="color"
+                  :class="{
+                                    'color-preset-item_selected': generalForm.markColor === color,
+                                }"
+                  :style="{ backgroundColor: color }"
+                  class="color-preset-item"
+                  @click="generalForm.markColor = color"
+              >
+                <n-icon v-if="color === ''" :component="Close" size="24" />
+              </div>
+            </n-form-item>
+          </n-form>
+        </n-tab-pane>
+      </n-tabs>
 
-    <!-- test result alert-->
-    <n-alert v-if="showTestConnSuccResult" title="" type="success">
-      {{ $t('conn_test_succ') }}
-    </n-alert>
-    <n-alert v-if="showTestConnFailResult" title="" type="error">
-      {{ $t('conn_test_fail') }}: {{ testResult }}
-    </n-alert>
+      <!-- test result alert-->
+      <n-alert v-if="showTestConnSuccResult" title="" type="success">
+        {{ $t('conn_test_succ') }}
+      </n-alert>
+      <n-alert v-if="showTestConnFailResult" title="" type="error">
+        {{ $t('conn_test_fail') }}: {{ testResult }}
+      </n-alert>
+    </n-spin>
 
-<!--     是否显示进度条  :loading=-->
-<!--    #action v-slot 句听话-->
-    <template v-slot:action>
+    <template #action>
       <div class="flex-item-expand">
-        <n-button :loading="loading" @click="onTestConnection">{{ $t('conn_test') }}</n-button>
+        <n-button :loading="loading" :disabled="closingConnection" @click="onTestConnection">
+          {{ $t('conn_test') }}
+        </n-button>
       </div>
       <div class="flex-item n-dialog__action">
-        <n-button @click="onClose">{{ $t('cancel') }}</n-button>
-        <n-button type="primary" @click="onSaveConnection">
+        <n-button :disabled="closingConnection" @click="onClose">{{ $t('cancel') }}</n-button>
+        <n-button type="primary" :disabled="closingConnection" @click="onSaveConnection">
           {{ isEditMode ? $t('update') : $t('confirm') }}
         </n-button>
       </div>
     </template>
   </n-modal>
 </template>
+
+<!--<template>-->
+<!--&lt;!&ndash;  New Connection dialog 窗口 &ndash;&gt;-->
+<!--  <n-modal-->
+<!--      v-model:show="dialogStore.connDialogVisible"-->
+<!--      :closable="false"-->
+<!--      :close-on-esc="false"-->
+<!--      :mask-closable="false"-->
+<!--      :on-after-leave="resetForm"-->
+<!--      :show-icon="false"-->
+<!--      :title="isEditMode ? $t('edit_conn_title') : $t('new_conn_title')"-->
+<!--      preset="dialog"-->
+<!--      transform-origin="center"-->
+<!--  >-->
+<!--&lt;!&ndash;    定义多个tabs 通过 tab进行选择&ndash;&gt;-->
+<!--    <n-tabs v-model:value="tab" type="line" animated>-->
+<!--&lt;!&ndash;      第一个tab 选项是 general &ndash;&gt;-->
+<!--&lt;!&ndash;     tab 显示什么  name： 选择的标签&ndash;&gt;-->
+<!--&lt;!&ndash;      打标签显示是坐对其还是右对齐&ndash;&gt;-->
+<!--      <n-tab-pane :tab="$t('general')" display-directive="show" name="general">-->
+<!--        <n-form-->
+<!--            :ref="generalFormRef"-->
+<!--            :label-width="formLabelWidth"-->
+<!--            :model="generalForm"-->
+<!--            :rules="generalFormRules()"-->
+<!--            :show-require-mark="false"-->
+<!--            label-align="right"-->
+<!--            label-placement="left"-->
+<!--        >-->
+<!--                    <n-form-item :label="$t('conn_name')" path="name" required>-->
+<!--            <n-input v-model:value="generalForm.name" :placeholder="$t('conn_name_tip')" />-->
+<!--          </n-form-item>-->
+<!--          <n-form-item v-if="!isEditMode" :label="$t('conn_group')" required>-->
+<!--            <n-select v-model:value="generalForm.group" :options="groupOptions" />-->
+<!--          </n-form-item>-->
+<!--                    <n-form-item :label="$t('conn_addr')" path="addr" required>-->
+<!--            <n-input v-model:value="generalForm.addr" :placeholder="$t('conn_addr_tip')" />-->
+<!--            <n-text style="width: 40px; text-align: center">:</n-text>-->
+<!--            <n-input-number v-model:value="generalForm.port" :max="65535" :min="1" style="width: 200px" />-->
+<!--          </n-form-item>-->
+<!--          <n-form-item :label="$t('conn_pwd')" path="password">-->
+<!--            <n-input-->
+<!--                v-model:value="generalForm.password"-->
+<!--                :placeholder="$t('conn_pwd_tip')"-->
+<!--                show-password-on="click"-->
+<!--                type="password"-->
+<!--            />-->
+<!--          </n-form-item>-->
+<!--                    <n-form-item :label="$t('conn_usr')" path="username">-->
+<!--                        <n-input v-model="generalForm.username" :placeholder="$t('conn_usr_tip')" />-->
+<!--                    </n-form-item>-->
+<!--                </n-form>-->
+<!--            </n-tab-pane>-->
+
+<!--&lt;!&ndash;       第二个选项是advanced &ndash;&gt;-->
+<!--      <n-tab-pane :tab="$t('advanced')" display-directive="show" name="advanced">-->
+<!--        <n-form-->
+<!--            ref="advanceFormRef"-->
+<!--            :label-width="formLabelWidth"-->
+<!--            :model="generalForm"-->
+<!--            :rules="generalFormRules()"-->
+<!--            :show-require-mark="false"-->
+<!--            label-align="right"-->
+<!--            label-placement="left"-->
+<!--        >-->
+<!--                    <n-form-item :label="$t('conn_advn_filter')" path="defaultFilter">-->
+<!--            <n-input v-model:value="generalForm.defaultFilter" :placeholder="$t('conn_advn_filter_tip')" />-->
+<!--          </n-form-item>-->
+<!--                    <n-form-item :label="$t('conn_advn_separator')" path="keySeparator">-->
+<!--            <n-input-->
+<!--                v-model:value="generalForm.keySeparator"-->
+<!--                :placeholder="$t('conn_advn_separator_tip')"-->
+<!--            />-->
+<!--          </n-form-item>-->
+<!--                    <n-form-item :label="$t('conn_advn_conn_timeout')" path="connTimeout">-->
+<!--            <n-input-number v-model:value="generalForm.connTimeout" :max="999999" :min="1">-->
+<!--              <template #suffix>-->
+<!--                {{ $t('second') }}-->
+<!--              </template>-->
+<!--            </n-input-number>-->
+<!--          </n-form-item>-->
+<!--                    <n-form-item :label="$t('conn_advn_exec_timeout')" path="execTimeout">-->
+<!--            <n-input-number v-model:value="generalForm.execTimeout" :max="999999" :min="1">-->
+<!--              <template #suffix>-->
+<!--                {{ $t('second') }}-->
+<!--              </template>-->
+<!--            </n-input-number>-->
+<!--          </n-form-item>-->
+<!--          <n-form-item :label="$t('conn_advn_mark_color')" path="markColor">-->
+<!--            <div-->
+<!--                v-for="color in predefineColors"-->
+<!--                :key="color"-->
+<!--                :class="{-->
+<!--                'color-preset-item_selected': generalForm.markColor === color,-->
+<!--              }"-->
+<!--                :style="{ backgroundColor: color }"-->
+<!--                class="color-preset-item"-->
+<!--                @click="generalForm.markColor = color"-->
+<!--            >-->
+<!--              <n-icon v-if="color === ''" :component="Close" size="24" />-->
+<!--            </div>-->
+<!--          </n-form-item>-->
+<!--        </n-form>-->
+<!--      </n-tab-pane>-->
+<!--    </n-tabs>-->
+
+<!--    &lt;!&ndash; test result alert&ndash;&gt;-->
+<!--    <n-alert v-if="showTestConnSuccResult" title="" type="success">-->
+<!--      {{ $t('conn_test_succ') }}-->
+<!--    </n-alert>-->
+<!--    <n-alert v-if="showTestConnFailResult" title="" type="error">-->
+<!--      {{ $t('conn_test_fail') }}: {{ testResult }}-->
+<!--    </n-alert>-->
+
+<!--&lt;!&ndash;     是否显示进度条  :loading=&ndash;&gt;-->
+<!--&lt;!&ndash;    #action v-slot 句听话&ndash;&gt;-->
+<!--    <template v-slot:action>-->
+<!--      <div class="flex-item-expand">-->
+<!--        <n-button :loading="loading" @click="onTestConnection">{{ $t('conn_test') }}</n-button>-->
+<!--      </div>-->
+<!--      <div class="flex-item n-dialog__action">-->
+<!--        <n-button @click="onClose">{{ $t('cancel') }}</n-button>-->
+<!--        <n-button type="primary" @click="onSaveConnection">-->
+<!--          {{ isEditMode ? $t('update') : $t('confirm') }}-->
+<!--        </n-button>-->
+<!--      </div>-->
+<!--    </template>-->
+<!--  </n-modal>-->
+<!--</template>-->
 
 <style lang="scss" scoped>
 .color-preset-item {

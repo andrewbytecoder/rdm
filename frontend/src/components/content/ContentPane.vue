@@ -25,18 +25,34 @@ const serverName = computed(():string => {
   }
   return ''
 })
-const refreshInfo = async () => {
+
+const loadingServerInfo = ref<boolean>(false)
+
+/**
+ * refresh server status info
+ * @param {boolean} [force] force refresh will show loading indicator
+ * @returns {Promise<void>}
+ */
+const refreshInfo = async (force: boolean): Promise<void> => {
+  if (force) {
+    loadingServerInfo.value = true
+  }
+
   if (!isEmpty(serverName.value) && connectionStore.isConnected(serverName.value)) {
-    serverInfo.value = await connectionStore.getServerInfo(serverName.value)
+    try {
+      serverInfo.value = await connectionStore.getServerInfo(serverName.value)
+    } finally {
+      loadingServerInfo.value = false
+    }
   }
 }
 
 let intervalId: number
 onMounted(() => {
-  refreshInfo()
+  refreshInfo(true)
   intervalId = setInterval(() => {
     if (autoRefresh.value) {
-      refreshInfo()
+      refreshInfo(false)
     }
   }, 5000)
 })
@@ -74,7 +90,7 @@ watch(
     () => tabStore.nav,
     (nav) => {
       if (nav === 'browser') {
-        refreshInfo()
+        refreshInfo(true)
       }
     }
 )
@@ -157,14 +173,15 @@ const onCloseTab = (tabIndex: number) => {
       </n-tab>
     </n-tabs>
     <!-- TODO: add loading status -->
-
+<!-- 显示服务状态-->
     <div v-if="showServerStatus" class="content-container flex-item-expand flex-box-v">
       <!-- select nothing or select server node, display server status -->
       <content-server-status
           v-model:auto-refresh="autoRefresh"
           :server="serverName"
           :info="serverInfo"
-          @refresh="refreshInfo"
+          :loading="loadingServerInfo"
+          @refresh="refreshInfo(true)"
       />
     </div>
     <div v-else-if="showNonexists" class="content-container flex-item-expand flex-box-v">
