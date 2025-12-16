@@ -435,10 +435,6 @@ const onLoadTree = async (node: TreeNode) => {
         loading.value = false
       }
       break
-    case ConnectionType.RedisKey:
-      // load all children
-      // node.children = []
-      break
   }
 }
 

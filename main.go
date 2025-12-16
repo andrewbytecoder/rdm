@@ -23,7 +23,7 @@ func main() {
 	prefSvc := services.Preferences()
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:     "rdm",
+		Title:     "wrdm",
 		Width:     1024,
 		Height:    768,
 		MinWidth:  1024,
@@ -52,8 +52,6 @@ func main() {
 				UseToolbar:                 false,
 				HideToolbarSeparator:       true,
 			},
-			//WebviewIsTransparent: true,
-			//WindowIsTranslucent:  true,
 		},
 	})
 

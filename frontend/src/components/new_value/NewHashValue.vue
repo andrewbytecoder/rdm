@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import {flatMap, reject} from 'lodash'
+import {flatMap, isEmpty, reject} from 'lodash'
 import Add from '../icons/Add.vue'
 import Delete from '../icons/Delete.vue'
 import IconButton from '../common/IconButton.vue'
@@ -29,6 +29,11 @@ const onUpdate = (val: Array<{ key: string; value: string }>) => {
  */
 const kvList = ref([{ key: '', value: '' }])
 
+defineExpose({
+  validate: () => {
+    return !isEmpty(props.value)
+  },
+})
 
 </script>
 
